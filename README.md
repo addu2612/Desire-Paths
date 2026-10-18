@@ -13,7 +13,7 @@ On FalkorDB's own repository, it found:
 Replayed on 300 merged PRs, the agent's top two picks include a person who really reviewed **77%** of the time on FalkorDB (CODEOWNERS: 0%, because it names only a team).
 On Apache Airflow it reaches **44%**, against **26%** for CODEOWNERS.
 
-**Live demo:** https://responded-voip-psp-led.trycloudflare.com/?repo=FalkorDB/FalkorDB
+**Live demo:** https://desire-paths.onrender.com/?repo=FalkorDB%2FFalkorDB (free hosting: the first load after a quiet spell can take about a minute)
 
 **Demo video (2 min):** [docs/desire-paths-demo.mp4](docs/desire-paths-demo.mp4)
 
