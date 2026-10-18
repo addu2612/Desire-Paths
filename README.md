@@ -29,7 +29,7 @@ Desire Paths loads both into one FalkorDB graph, shows where they disagree, and 
 
 Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs x FalkorDB), entered in Track 01: *Agents That Act on Connected Data*.
 
-![Apache Airflow: dashed violet is CODEOWNERS, the grooves are where people actually walk](docs/airflow-map.png)
+![Apache Airflow: people on the left, folders on the right; dashed violet is CODEOWNERS, solid lines are real work](docs/airflow-map.png)
 
 ## What it found on real repos
 
@@ -101,8 +101,8 @@ The flow network is projected into a scratch graph and dropped after the solve (
 **Plan for absence.**
 `if_gone` removes a person from the graph and walks it again.
 It returns the open PRs that get stuck and whether each one has a good backup, the areas that are orphaned or thin, who covers each area next, and whose code loses its main reviewer.
-On the map, their pebble becomes an empty socket and their grooves turn red.
-![If @DvirDukhan is away: their grooves turn red, and the stuck PRs show who would review next](docs/if-gone.png)
+On the map, they are marked "away" and their lines turn red.
+![If @DvirDukhan is away: their lines turn red, and the stuck PRs show who would review next](docs/if-gone.png)
 
 `fading_paths` finds the same risk in slow motion: areas whose main expert has stopped walking them, and whether anyone has picked the work up.
 
@@ -130,13 +130,15 @@ The agent picks tools, walks the graph, cites PRs, and the map lights up the exa
 Every answer and card has a *Graph proof* drawer with the exact Cypher queries the tools ran on FalkorDB, their parameters, row counts and timings.
 Nothing the agent says is a black box: you can paste any of them into FalkorDB Browser and get the same rows.
 
-## The signature detail: paths worn into clay
+## Reading the map
 
-- **Dashed violet** lines are the blueprint: what `CODEOWNERS` says.
-- **Grooves** are worn into the surface by real pull requests and reviews. Wider and deeper means more work; old paths grow shallow. Teal particles walk along paths used in the last 45 days.
-- **Ghost owners** (dashed circles) own code on paper and are absent in practice.
-- Press **play** to watch 18 months of the repo wear in: paths form, thicken, and fade as people move on. The decay is computed in the browser from the same per-PR events the backend uses.
-- **Pave the paths** fills the grooves with violet and drafts the `CODEOWNERS` that would make the blueprint match reality.
+- **People are on the left, the folders they work in on the right.**
+- **Solid lines** are real pull requests and reviews. Thicker means more work; teal means active in the last 45 days, grey means older.
+- **Dashed violet** lines are what `CODEOWNERS` says.
+- **Dashed circles** are owners on paper only: named in `CODEOWNERS`, with no recent work.
+- Press **play** to watch 18 months of the repo: lines form, thicken, and fade as people move on. The decay is computed in the browser from the same per-PR events the backend uses.
+- **Pave the paths** colours the lines violet and drafts the `CODEOWNERS` that would make the file match reality.
+- To stay readable, the map shows the 22 busiest folders and 16 busiest people; work in smaller folders is folded into their parent folder.
 
 ## Why a graph
 
@@ -248,3 +250,10 @@ src/desire_paths/
 web/             the worn-grass map (force-graph on canvas) and the agent panel
 data/            cached GitHub snapshots so the demo runs offline
 ```
+
+## Use of AI tools
+
+In line with the hackathon rules, we disclose that this project was built with help from an AI coding assistant (Claude Code).
+It was used for writing and refactoring code, the UI, the README, and producing the demo video (the narration is local Kokoro text-to-speech, the video is composed with HyperFrames).
+The idea, the graph model, the product decisions, and the checks of every number in this README were ours; all results come from running the code against FalkorDB on public GitHub data.
+At runtime, the in-app agent uses GLM 5.3 through Sarvam to choose which graph tools to call and to word its answers; every fact it states comes from the Cypher queries shown in its *Graph proof* drawer.
