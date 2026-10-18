@@ -235,6 +235,8 @@ def ingest(body: Ingest):
         raise HTTPException(400, "use owner/name")
     if ingest_status.get(repo, {}).get("state") == "running":
         return ingest_status[repo]
+    if any(st.get("state") == "running" for st in ingest_status.values()):
+        raise HTTPException(429, "another repo is loading; try again in a minute")
 
     def work():
         try:

@@ -539,7 +539,9 @@ async function wireApprove(id, act) {
   const btn = box.querySelector("button"), note = box.querySelector(".note");
   const body = { repo: S.repo, kind: "request_reviewers", number: act.number, reviewers: act.reviewers };
   const plan = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
-  note.textContent = plan.can_write ? "you have write access: this will request reviews on GitHub" : `read-only on ${S.repo}: approving records a dry run, nothing is posted`;
+  note.textContent = plan.can_write ? "you have write access: this will request reviews on GitHub"
+    : !plan.writes_enabled ? "demo server: approving records a dry run in the graph, nothing is posted"
+    : `read-only on ${S.repo}: approving records a dry run, nothing is posted`;
   btn.onclick = async () => {
     btn.disabled = true;
     note.textContent = "working…";
@@ -672,7 +674,8 @@ async function pave() {
   const plan = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo: S.repo, kind: "open_codeowners_pr" }) })).json();
   const btn = $("#pave-pr-btn");
   btn.disabled = false;
-  $("#pave-status").textContent = plan.target ? `will open a PR on ${plan.target}` : `read-only on ${S.repo} and no fork: approving records a dry run`;
+  $("#pave-status").textContent = plan.target ? `will open a PR on ${plan.target}`
+    : !plan.writes_enabled ? "demo server: approving records a dry run" : `read-only on ${S.repo} and no fork: approving records a dry run`;
   btn.onclick = async () => {
     btn.disabled = true;
     $("#pave-status").textContent = "opening PR…";

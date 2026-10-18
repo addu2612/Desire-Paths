@@ -9,6 +9,7 @@ fork (for CODEOWNERS PRs) or returns a dry-run plan. Every attempt is recorded i
 from __future__ import annotations
 
 import base64
+import os
 import time
 
 import httpx
@@ -16,6 +17,11 @@ import httpx
 from desire_paths.github import API, _client
 
 BRANCH_PREFIX = "desire-paths"
+
+
+def writes_enabled() -> bool:
+    """GitHub writes need an explicit opt-in, so a public deployment can never act with the owner's token."""
+    return os.environ.get("ALLOW_WRITE_ACTIONS", "").strip().lower() in ("1", "true", "yes")
 
 
 def _me(client: httpx.Client) -> str:
@@ -66,13 +72,15 @@ def request_reviewers(g, repo: str, number: int, reviewers: list[str], decision:
         "comment": routing_comment(decision) if decision else None,
     }
     with _client() as client:
-        writable = can_push(client, repo)
+        writable = writes_enabled() and can_push(client, repo)
         plan["can_write"] = writable
+        plan["writes_enabled"] = writes_enabled()
         if not confirm:
             return {"status": "planned", **plan}
         if not writable:
             record(g, "request_reviewers", "dry-run", repo, None, number, ",".join(reviewers))
-            return {"status": "dry-run", "reason": f"no write access to {repo}; nothing was changed", **plan}
+            why = "write actions are disabled on this server" if not writes_enabled() else f"no write access to {repo}"
+            return {"status": "dry-run", "reason": f"{why}; nothing was changed", **plan}
         r = client.post(f"{API}/repos/{repo}/pulls/{number}/requested_reviewers", json={"reviewers": reviewers})
         if r.status_code >= 300:
             record(g, "request_reviewers", "failed", repo, None, number, r.text[:200])
@@ -84,14 +92,16 @@ def request_reviewers(g, repo: str, number: int, reviewers: list[str], decision:
 
 def open_codeowners_pr(g, repo: str, codeowners: str, changes: list[dict], confirm: bool = False) -> dict:
     with _client() as client:
-        target = repo if can_push(client, repo) else own_fork(client, repo)
-        plan = {"kind": "open_codeowners_pr", "repo": repo, "target": target,
+        target = (repo if can_push(client, repo) else own_fork(client, repo)) if writes_enabled() else None
+        plan = {"kind": "open_codeowners_pr", "repo": repo, "target": target, "writes_enabled": writes_enabled(),
                 "files": [".github/CODEOWNERS"], "changes": len(changes)}
         if not confirm:
             return {"status": "planned", **plan}
         if not target:
             record(g, "open_codeowners_pr", "dry-run", repo, None, None, "no write access and no fork")
-            return {"status": "dry-run", "reason": f"no write access to {repo} and no fork in your account", **plan}
+            why = ("write actions are disabled on this server" if not writes_enabled()
+                   else f"no write access to {repo} and no fork in your account")
+            return {"status": "dry-run", "reason": why, **plan}
 
         info = client.get(f"{API}/repos/{target}").raise_for_status().json()
         base = info["default_branch"]

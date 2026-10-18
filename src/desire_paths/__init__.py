@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from desire-paths!")
+"""Desire Paths: a graph agent for how a repository really works."""
