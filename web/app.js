@@ -6,7 +6,7 @@ const css = getComputedStyle(document.documentElement);
 const tok = (name) => css.getPropertyValue(name).trim();
 const C = {
   clay: tok("--clay"), fg: tok("--fg"), muted: tok("--muted"), accent: tok("--accent"),
-  teal: tok("--teal"), groove: tok("--groove"), risk: tok("--risk"),
+  teal: tok("--teal"), groove: tok("--groove"), risk: tok("--risk"), slate: "#8A96A8",
   dark: "rgba(163,177,198,", light: "rgba(255,255,255,",
 };
 
@@ -79,67 +79,54 @@ function linkRisk(l) {
   return !!(S.hl && S.hl.risk && S.hl.risk.has(linkKey(idOf(l.source), idOf(l.target))));
 }
 
-function strokeLine(ctx, a, b, dx = 0, dy = 0) {
+// Links are smooth horizontal curves from a person (left column) to an area (right column).
+function curve(ctx, a, b) {
+  const dx = (b.x - a.x) * 0.5;
   ctx.beginPath();
-  ctx.moveTo(a.x + dx, a.y + dy);
-  ctx.lineTo(b.x + dx, b.y + dy);
+  ctx.moveTo(a.x, a.y);
+  if (Math.abs(b.x - a.x) < 1) {
+    // person to person (reviews): bow out to the left of the people column
+    const bow = 40 + Math.abs(b.y - a.y) * 0.35;
+    ctx.bezierCurveTo(a.x - bow, a.y, b.x - bow, b.y, b.x, b.y);
+  } else {
+    ctx.bezierCurveTo(a.x + dx, a.y, b.x - dx, b.y, b.x, b.y);
+  }
   ctx.stroke();
-}
-
-// A desire path is a groove cut into the clay: dark rim on the top-left wall, light rim on the
-// bottom-right, the floor in between. More work = wider and deeper; old paths grow shallow.
-function drawGroove(ctx, a, b, width, depth, scale, fill) {
-  const o = (0.8 + depth * 1.6) / scale;
-  ctx.lineCap = "round";
-  ctx.lineWidth = width;
-  ctx.strokeStyle = "rgba(120,135,158," + (0.35 + 0.6 * depth) + ")"; // shadowed upper wall
-  strokeLine(ctx, a, b, -o, -o);
-  ctx.strokeStyle = C.light + (0.7 + 0.3 * depth) + ")";            // lit lower wall
-  strokeLine(ctx, a, b, o, o);
-  ctx.globalAlpha *= 0.55 + 0.45 * depth;
-  ctx.strokeStyle = fill || C.groove;                                 // the worn floor
-  ctx.lineWidth = Math.max(width - 1.2 * o, width * 0.55);
-  strokeLine(ctx, a, b);
 }
 
 function drawLink(l, ctx, scale) {
   const a = l.source, b = l.target;
   if (a.x == null || b.x == null) return;
   const hl = linkHl(l);
+  const px = 1 / scale;
   ctx.save();
-  ctx.globalAlpha = S.hl && !hl ? 0.22 : 1;
-  if (l.kind === "tree") {
-    ctx.strokeStyle = "rgba(61,72,82,0.10)";
-    ctx.lineWidth = 0.8 / scale;
-    strokeLine(ctx, a, b);
-  } else if (l.kind === "official") {
-    ctx.setLineDash([5 / scale, 4 / scale]);
+  ctx.lineCap = "round";
+  ctx.globalAlpha = S.hl && !hl ? 0.12 : 1;
+  if (l.kind === "official") {
+    ctx.setLineDash([6 * px, 5 * px]);
     ctx.strokeStyle = C.accent;
-    ctx.globalAlpha *= hl ? 1 : (l.coverage >= 0.5 ? 0.42 : 0.2) * S.planFade;
-    ctx.lineWidth = (hl ? 2 : 1) / scale;
-    strokeLine(ctx, a, b);
+    ctx.globalAlpha *= hl ? 1 : 0.55 * S.planFade;
+    ctx.lineWidth = (hl ? 2.2 : 1.4) * px;
+    curve(ctx, a, b);
   } else if (l.kind === "collab") {
-    ctx.strokeStyle = hl ? C.fg : "rgba(107,114,128,0.32)";
-    ctx.lineWidth = (hl ? 1.8 : 0.5 + Math.min(l.n, 30) / 30) / scale;
-    strokeLine(ctx, a, b);
+    ctx.strokeStyle = hl ? C.fg : C.muted;
+    ctx.globalAlpha *= hl ? 0.9 : 0.35;
+    ctx.lineWidth = (hl ? 2 : 0.8 + Math.min(l.n, 30) / 20) * px;
+    curve(ctx, a, b);
   } else if (l.kind === "worn") {
     const rel = Math.sqrt(l._s / S.maxScore);
     const age = l._last ? (S.T - l._last) / DAY : 999;
-    const fresh = Math.max(0.1, Math.exp(-age / 100));
-    const depth = Math.min(1, rel * (0.4 + 0.6 * fresh));
-    const width = (2 + rel * 8) / scale;
+    const recent = age < 45;
     const paved = S.paved.has(linkKey(idOf(a), idOf(b)));
     const risk = linkRisk(l);
-    drawGroove(ctx, a, b, width, hl ? 1 : depth, scale, risk ? C.risk : paved ? C.accent : null);
-    if (hl && !paved && !risk) {
-      ctx.strokeStyle = C.teal;
-      ctx.lineWidth = Math.max(1.4 / scale, width * 0.38);
-      strokeLine(ctx, a, b);
-    }
-  } else if (l.kind === "path") {
-    drawGroove(ctx, a, b, 4 / scale, 1, scale, C.teal);
-  } else if (l.kind === "risk") {
-    drawGroove(ctx, a, b, 4 / scale, 1, scale, C.risk);
+    ctx.strokeStyle = risk ? C.risk : paved ? C.accent : recent ? C.teal : C.slate;
+    ctx.globalAlpha *= hl || risk ? 1 : recent ? 0.85 : 0.45 + 0.4 * Math.exp(-age / 200);
+    ctx.lineWidth = (1.2 + rel * 9) * px * Math.max(0.6, Math.min(1, scale));
+    curve(ctx, a, b);
+  } else if (l.kind === "path" || l.kind === "risk") {
+    ctx.strokeStyle = l.kind === "risk" ? C.risk : C.teal;
+    ctx.lineWidth = 3.5 * px;
+    curve(ctx, a, b);
   }
   ctx.restore();
 }
@@ -148,143 +135,93 @@ function label(ctx, text, x, y, size, weight, color, family, align = "center") {
   ctx.font = `${weight} ${size}px ${family}`;
   ctx.textAlign = align;
   ctx.textBaseline = "middle";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = size * 0.42;
-  ctx.strokeStyle = C.clay; // a clay halo keeps labels legible over grooves
-  ctx.strokeText(text, x, y);
   ctx.fillStyle = color;
   ctx.fillText(text, x, y);
 }
 
-// People are pebbles pressed out of the surface. Canvas shadow offsets are in screen pixels,
-// so the lighting stays constant at every zoom level, like the rest of the UI.
-function pebble(ctx, x, y, r, lift) {
-  ctx.save();
-  ctx.fillStyle = C.clay;
-  ctx.shadowColor = C.dark + "0.75)";
-  ctx.shadowOffsetX = ctx.shadowOffsetY = 2 + lift * 3;
-  ctx.shadowBlur = 4 + lift * 6;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  ctx.shadowColor = C.light + "0.9)";
-  ctx.shadowOffsetX = ctx.shadowOffsetY = -(2 + lift * 3);
-  ctx.fill();
-  ctx.restore();
-  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
-  g.addColorStop(0, "rgba(255,255,255,0.55)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-}
+const FONT = '"DM Sans"';
+const LABEL = 13; // label size in screen pixels, constant at every zoom
 
 function drawNode(n, ctx, scale) {
   const focus = S.hl && S.hl.nodes.has(n.id);
   ctx.save();
-  ctx.globalAlpha = S.hl && !focus ? 0.3 : 1;
+  ctx.globalAlpha = S.hl && !focus ? 0.25 : 1;
   const px = 1 / scale;
-  const shrink = 1 / Math.max(1, Math.sqrt(scale));
+  const fs = LABEL * px;
   if (n.kind === "area") {
-    const size = ((n.depth === 1 ? 7 : 4.2) + Math.sqrt(n.prs || 0) * 0.3) * shrink;
     const heat = n._heat || 0;
-    // a small well drilled into the clay; busier areas are drilled deeper
-    const x = n.x - size / 2, y = n.y - size / 2;
-    ctx.fillStyle = C.groove;
-    ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = C.dark + (0.4 + heat * 0.5) + ")";
-    ctx.fillRect(x, y, size, Math.max(px, size * 0.22));
-    ctx.fillRect(x, y, Math.max(px, size * 0.22), size);
+    const r = 4.5 * px;
+    ctx.fillStyle = heat > 0.02 ? C.fg : C.muted;
+    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); ctx.fill();
     if (n.owned && S.layers.blueprint) {
       ctx.setLineDash([2.5 * px, 2 * px]);
       ctx.strokeStyle = C.accent;
-      ctx.lineWidth = 1.3 * px;
-      ctx.strokeRect(x - 3 * px, y - 3 * px, size + 6 * px, size + 6 * px);
+      ctx.lineWidth = 1.5 * px;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r + 3.5 * px, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
     }
-    const show = (n.depth === 1 && (n.prs >= S.labelMin || scale > 1.3)) || (n.depth === 2 && n.prs >= S.label2Min)
-      || focus || scale > 1.8 || S.hoverNode === n;
-    if (show) {
-      const top = n.depth === 1;
-      label(ctx, (top || focus ? n.label : n.name) + "/", n.x + size / 2 + 5 * px, n.y,
-        (top ? 13 : 11) * px, top || focus ? 700 : 500, top || focus ? C.fg : C.muted,
-        top ? '"Plus Jakarta Sans"' : '"DM Sans"', "left");
+    const dir = n.label.includes("/") ? n.label.slice(0, n.label.lastIndexOf("/") + 1) : "";
+    ctx.font = `500 ${fs}px ${FONT}`;
+    const w = ctx.measureText(dir).width;
+    label(ctx, dir, n.x + 12 * px, n.y, fs, 500, C.muted, FONT, "left");
+    label(ctx, n.name + "/", n.x + 12 * px + w, n.y, fs, focus ? 700 : 600, C.fg, FONT, "left");
+    if (S.hoverNode === n || focus) {
+      ctx.font = `600 ${fs}px ${FONT}`;
+      const w2 = w + ctx.measureText(n.name + "/").width;
+      label(ctx, `${n.prs} PRs`, n.x + 20 * px + w2, n.y, (LABEL - 1.5) * px, 500, C.muted, FONT, "left");
     }
   } else if (n.kind === "team") {
-    const r = 8;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const ang = (Math.PI / 3) * i + Math.PI / 6;
-      ctx.lineTo(n.x + r * Math.cos(ang), n.y + r * Math.sin(ang));
-    }
-    ctx.closePath();
+    const r = 7 * px;
     ctx.setLineDash([3 * px, 2 * px]);
     ctx.strokeStyle = C.accent;
-    ctx.lineWidth = 1.6 * px;
-    ctx.stroke();
+    ctx.lineWidth = 1.8 * px;
+    ctx.strokeRect(n.x - r, n.y - r, 2 * r, 2 * r);
     ctx.setLineDash([]);
-    label(ctx, "@" + n.label, n.x, n.y + r + 11 * px, 11.5 * px, 700, C.accent, '"Plus Jakarta Sans"');
+    label(ctx, "@" + n.label + " (team)", n.x - 14 * px, n.y, fs, 700, C.accent, FONT, "right");
   } else {
     const s = n._s || 0;
     const ghost = s < 0.01;
-    const r = (ghost ? 4 : 3.4 + Math.sqrt(s) * 8) * shrink;
-    if (S.gone === n.id) {
-      // the person who is away: an empty socket where their pebble used to sit
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r + 1.5 * px, 0, Math.PI * 2);
-      ctx.fillStyle = C.groove;
-      ctx.fill();
+    const away = S.gone === n.id;
+    const r = (ghost ? 5 : 5 + Math.sqrt(s) * 7) * px;
+    const recent = S.T - (n._last || 0) < 45 * DAY;
+    if (away || ghost) {
       ctx.setLineDash([3 * px, 2.5 * px]);
-      ctx.strokeStyle = C.risk;
-      ctx.lineWidth = 2 * px;
-      ctx.stroke();
-      ctx.setLineDash([]);
-    } else if (ghost) {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      ctx.setLineDash([2 * px, 2 * px]);
-      ctx.strokeStyle = n.ghost ? C.accent : C.muted;
-      ctx.lineWidth = 1.3 * px;
-      ctx.stroke();
+      ctx.strokeStyle = away ? C.risk : n.ghost ? C.accent : C.muted;
+      ctx.lineWidth = 1.8 * px;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
     } else {
-      pebble(ctx, n.x, n.y, r, Math.min(1, s * 1.4));
-      if (S.T - (n._last || 0) < 45 * DAY) {
-        ctx.fillStyle = C.teal;
-        ctx.beginPath(); ctx.arc(n.x, n.y, Math.max(1.3 * px, r * 0.28), 0, Math.PI * 2); ctx.fill();
-      }
+      ctx.fillStyle = recent ? C.teal : C.slate;
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2); ctx.fill();
       if (focus) {
-        ctx.strokeStyle = C.teal;
+        ctx.strokeStyle = C.fg;
         ctx.lineWidth = 2 * px;
         ctx.beginPath(); ctx.arc(n.x, n.y, r + 3 * px, 0, Math.PI * 2); ctx.stroke();
       }
     }
-    if (focus || s > 0.35 || scale > 2.2 || S.hoverNode === n) {
-      label(ctx, "@" + n.label + (S.gone === n.id ? " (away)" : ""), n.x, n.y + r + 11 * px, 11.5 * px,
-        focus ? 700 : 600, S.gone === n.id ? C.risk : ghost ? C.muted : C.fg, '"Plus Jakarta Sans"');
-    }
+    label(ctx, "@" + n.label + (away ? " (away)" : ""), n.x - r - 8 * px, n.y, fs,
+      focus ? 700 : 600, away ? C.risk : ghost ? C.muted : C.fg, FONT, "right");
   }
   ctx.restore();
 }
 
+// The clickable target covers the dot and its label.
 function nodeArea(n, color, ctx) {
+  const scale = S.fg ? S.fg.zoom() : 1;
+  const px = 1 / scale;
+  const w = ((n.label || "").length + 2) * 7.2 * px;
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(n.x, n.y, n.kind === "area" ? 7 : 8, 0, 2 * Math.PI);
-  ctx.fill();
+  if (n.kind === "area") ctx.fillRect(n.x - 10 * px, n.y - 10 * px, w + 30 * px, 20 * px);
+  else ctx.fillRect(n.x - w - 30 * px, n.y - 10 * px, w + 44 * px, 20 * px);
 }
 
 function linkVisible(l) {
+  if (l.kind === "tree") return false;
   if (linkRisk(l)) return true;
   if (l.kind === "official") return S.layers.blueprint;
   if (l.kind === "collab") return S.layers.collab || linkHl(l);
   if (l.kind === "worn") return S.layers.worn && l._s > 0.002;
   return true;
-}
-
-function particles(l) {
-  if (l.kind !== "worn" || !S.layers.worn || !l._last) return 0;
-  const age = (S.T - l._last) / DAY;
-  if (age > 45) return 0;
-  const rel = l._s / S.maxScore;
-  return rel > 0.4 ? 3 : rel > 0.12 ? 2 : 1;
 }
 
 /* ---------- graph setup ---------- */
@@ -300,23 +237,18 @@ function initGraph() {
     .linkCanvasObjectMode(() => "replace")
     .linkCanvasObject(drawLink)
     .linkVisibility(linkVisible)
-    .linkDirectionalParticles(particles)
-    .linkDirectionalParticleWidth(2.6)
-    .linkDirectionalParticleSpeed(() => 0.0035)
-    .linkDirectionalParticleColor(() => C.teal)
-    .cooldownTicks(260)
+    .autoPauseRedraw(false)
+    .enableNodeDrag(false)
+    .cooldownTicks(1)
     .onNodeHover(onHover)
     .onNodeClick(onClick)
     .onBackgroundClick(() => { clearHighlight(); })
-    .onEngineStop(() => { if (!S._fitted) { S.fg.zoomToFit(600, 40); S._fitted = true; } });
-  S.fg.d3Force("charge").strength((n) => (n.kind === "area" ? -30 : -90)).distanceMax(300);
-  S.fg.d3Force("anchor", anchorForce());
-  // Areas are pinned, so the default centering force would keep sliding everyone else off-map.
+    .onEngineStop(() => { if (!S._fitted) { fitAll(0); S._fitted = true; } });
+  // Every node has a fixed place in its column; the simulation only resolves link endpoints.
+  S.fg.d3Force("charge", null);
   S.fg.d3Force("center", null);
-  S.fg.d3Force("link")
-    .distance((l) => ({ tree: 46, official: 110, worn: 85, collab: 140 }[l.kind] || 80))
-    .strength((l) => ({ tree: 0.8, official: 0.04, worn: 0.12 + 0.3 * Math.sqrt((l.score || 0) / (S.maxScore || 1)), collab: 0.01 }[l.kind] || 0.1));
-  new ResizeObserver(() => S.fg.width(el.clientWidth).height(el.clientHeight)).observe(el);
+  S.fg.d3Force("link").strength(0);
+  new ResizeObserver(() => { S.fg.width(el.clientWidth).height(el.clientHeight); fitAll(0); }).observe(el);
   el.addEventListener("mousemove", (e) => {
     const h = $("#hover");
     const r = $("#stage").getBoundingClientRect();
@@ -325,9 +257,21 @@ function initGraph() {
   });
 }
 
+// Frame both columns with room for the labels on either side.
+function fitAll(ms = 500) {
+  if (!S.fg || !S.data) return;
+  const el = $("#graph");
+  const L = S.layout;
+  if (!L) return;
+  const w = L.right - L.left, h = L.bottom - L.top;
+  const k = Math.min(el.clientWidth / w, el.clientHeight / h, 1.6);
+  S.fg.centerAt((L.left + L.right) / 2, (L.top + L.bottom) / 2, ms);
+  S.fg.zoom(k, ms);
+}
+
 function refresh() {
   if (!S.fg) return;
-  S.fg.linkVisibility(linkVisible).linkDirectionalParticles(particles);
+  S.fg.linkVisibility(linkVisible);
 }
 
 /* ---------- hover & click ---------- */
@@ -388,64 +332,65 @@ async function tool(name, arg, arg2) {
   return r.json();
 }
 
-/* ---------- map layout: areas are fixed districts, people move ---------- */
-function layoutMap(data) {
-  const areas = data.nodes.filter((n) => n.kind === "area");
-  const top = areas.filter((n) => n.depth === 1);
-  // Put the busiest districts next to each other, alternating sides so the ring stays balanced.
-  top.sort((a, b) => b.prs - a.prs);
-  const ring = [];
-  top.forEach((n, i) => (i % 2 ? ring.push(n) : ring.unshift(n)));
-  const R1 = 150 + top.length * 14;
-  const weight = (n) => 1 + Math.sqrt(n.prs || 1) + areas.filter((c) => c.depth === 2 && c.label.startsWith(n.label + "/")).length * 1.5;
-  const rawTotal = ring.reduce((s, n) => s + weight(n), 0);
-  // Blend proportional and equal spacing so small districts don't pile up.
-  const share = (n) => 0.45 * (weight(n) / rawTotal) + 0.55 / ring.length;
-  const total = 1;
-  let acc = 0;
-  for (const n of ring) {
-    const w = share(n);
-    const ang = ((acc + w / 2) / total) * 2 * Math.PI - Math.PI / 2;
-    acc += w;
-    n.fx = R1 * Math.cos(ang);
-    n.fy = R1 * Math.sin(ang);
-    const kids = areas.filter((c) => c.depth === 2 && c.label.startsWith(n.label + "/")).sort((a, b) => b.prs - a.prs);
-    const spread = ((w / total) * 2 * Math.PI) * 0.85;
-    kids.forEach((c, j) => {
-      const t = kids.length === 1 ? 0 : j / (kids.length - 1) - 0.5;
-      const a2 = ang + t * spread;
-      const r2 = R1 + 90 + (j % 3) * 38;
-      c.fx = r2 * Math.cos(a2);
-      c.fy = r2 * Math.sin(a2);
-    });
+/* ---------- map layout: people on the left, the areas they work in on the right ---------- */
+const MAX_AREAS = 22, MAX_PEOPLE = 16, ROW = 30, GAP = 680;
+
+// Keep the chart readable: the busiest areas and people only. Paths into a hidden subfolder are
+// folded into its top-level folder, so no activity disappears from the picture.
+function trimForChart(data) {
+  const byId = new Map(data.nodes.map((n) => [n.id, n]));
+  const weight = new Map();
+  for (const l of data.links) {
+    if (l.kind !== "worn" && l.kind !== "official") continue;
+    const t = idOf(l.target);
+    weight.set(t, (weight.get(t) || 0) + (l.kind === "worn" ? l.score || 0 : 0.3));
   }
-  // People start near the middle of the areas they walk.
-  const pos = new Map(areas.map((a) => [a.id, a]));
-  for (const n of data.nodes) {
-    if (n.kind === "area") continue;
-    const ls = data.links.filter((l) => idOf(l.source) === n.id && (l.kind === "worn" || l.kind === "official"));
-    let x = 0, y = 0, k = 0;
-    for (const l of ls) { const a = pos.get(idOf(l.target)); if (a && a.fx != null) { const w = l.score || 0.2; x += a.fx * w; y += a.fy * w; k += w; } }
-    n._tx = k ? (x / k) * 0.7 : 0;
-    n._ty = k ? (y / k) * 0.7 : 0;
-    n.x = n._tx + (Math.random() - 0.5) * 20;
-    n.y = n._ty + (Math.random() - 0.5) * 20;
+  const keepAreas = new Set([...weight.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_AREAS).map((e) => e[0]));
+  const parentOf = (id) => "a:" + id.slice(2).split("/")[0];
+  const links = new Map();
+  for (const l of data.links) {
+    if (l.kind === "tree") continue;
+    let t = idOf(l.target);
+    const src = idOf(l.source);
+    if (t.startsWith("a:") && !keepAreas.has(t)) {
+      const p = parentOf(t);
+      if (!byId.has(p)) continue;
+      keepAreas.add(p);
+      t = p;
+    }
+    const key = `${l.kind}|${src}|${t}`;
+    const prev = links.get(key);
+    if (!prev) { links.set(key, { ...l, source: src, target: t, events: l.events ? [...l.events] : undefined }); continue; }
+    if (l.kind === "worn") {
+      prev.score += l.score || 0; prev.prs += l.prs || 0; prev.last = Math.max(prev.last || 0, l.last || 0);
+      prev.events = prev.events.concat(l.events || []).sort((x, y) => x[0] - y[0]);
+    }
   }
+  const pScore = new Map();
+  for (const l of links.values()) if (l.kind === "worn") pScore.set(l.source, (pScore.get(l.source) || 0) + l.score);
+  const keepPeople = new Set([...pScore.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_PEOPLE).map((e) => e[0]));
+  // Owners who only exist on paper: keep the team and the few with the most claimed areas.
+  const claims = new Map();
+  for (const l of links.values()) if (l.kind === "official" && !keepPeople.has(l.source)) claims.set(l.source, (claims.get(l.source) || 0) + 1);
+  const paper = [...claims.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [id] of paper.filter((e) => e[0].startsWith("t:")).concat(paper.filter((e) => !e[0].startsWith("t:")).slice(0, 4))) keepPeople.add(id);
+  const nodes = data.nodes.filter((n) => (n.kind === "area" ? keepAreas.has(n.id) : keepPeople.has(n.id)));
+  const ids = new Set(nodes.map((n) => n.id));
+  return { ...data, nodes, links: [...links.values()].filter((l) => ids.has(l.source) && ids.has(l.target)) };
 }
 
-// Gently pull every free node toward the centre of the areas it is tied to, so people linked
-// only by reviews (or teams linked only by the blueprint) can't drift off the map.
-function anchorForce(strength = 0.06) {
-  let nodes = [];
-  const force = (alpha) => {
-    for (const n of nodes) {
-      if (n.fx != null || n._tx == null) continue;
-      n.vx += (n._tx - n.x) * strength * alpha;
-      n.vy += (n._ty - n.y) * strength * alpha;
-    }
-  };
-  force.initialize = (ns) => (nodes = ns);
-  return force;
+function layoutMap(data) {
+  // Areas: alphabetical by path, so a folder's subfolders sit together.
+  const areas = data.nodes.filter((n) => n.kind === "area").sort((a, b) => a.label.localeCompare(b.label));
+  // People: team first, then the most active, then owners who only exist on paper.
+  const score = new Map();
+  for (const l of data.links) if (l.kind === "worn") score.set(idOf(l.source), (score.get(idOf(l.source)) || 0) + l.score);
+  const rank = (n) => (n.kind === "team" ? -1e9 : -(score.get(n.id) || 0));
+  const people = data.nodes.filter((n) => n.kind !== "area").sort((a, b) => rank(a) - rank(b));
+  const H = Math.max(areas.length, people.length, 2) - 1;
+  areas.forEach((n, i) => { n.fx = n.x = GAP; n.fy = n.y = (areas.length > 1 ? (i / (areas.length - 1)) * H : 0) * ROW; });
+  people.forEach((n, i) => { n.fx = n.x = 0; n.fy = n.y = (people.length > 1 ? (i / (people.length - 1)) * H : H / 2) * ROW; });
+  S.layout = { left: -230, right: GAP + 230, top: -ROW, bottom: H * ROW + ROW };
 }
 
 /* ---------- highlight ---------- */
@@ -483,15 +428,11 @@ function applyHighlight(h, replace = false) {
     const d = S.fg.graphData();
     S.fg.graphData({ nodes: d.nodes, links: d.links.concat(extra) });
   }
-  if (S.hl.nodes.size) fitTo((n) => S.hl.nodes.has(n.id));
   refresh();
 }
 
-// Fit the camera to some nodes, but never zoom in so far that the map loses its context.
-function fitTo(filter) {
-  S.fg.zoomToFit(700, 110, filter);
-  setTimeout(() => { if (S.fg.zoom() > 2.4) S.fg.zoom(2.4, 400); }, 720);
-}
+// The chart always shows everything; highlighting dims the rest instead of moving the camera.
+function fitTo() { fitAll(400); }
 
 function clearHighlight() {
   S.hl = null;
@@ -952,25 +893,22 @@ async function loadRepo(repo) {
   S.hl = null; S.paved = new Set(); S.history = []; S._fitted = false;
   history.replaceState(null, "", `?repo=${encodeURIComponent(repo)}`);
   const [o, n] = repo.split("/");
-  S.data = await (await fetch(`/api/graph/${o}/${n}`)).json();
+  S.data = trimForChart(await (await fetch(`/api/graph/${o}/${n}`)).json());
   setupTimeline();
   recomputeWear();
   if (!S.fg) initGraph();
   layoutMap(S.data);
   const planLinks = S.data.links.filter((l) => l.kind === "official").length;
-  S.planFade = Math.min(1, 60 / Math.max(planLinks, 1)) ** 0.5;
-  const tops = S.data.nodes.filter((n) => n.kind === "area" && n.depth === 1).map((n) => n.prs).sort((a, b) => b - a);
-  S.labelMin = tops[Math.min(13, tops.length - 1)] || 0;
-  const subs = S.data.nodes.filter((n) => n.kind === "area" && n.depth === 2).map((n) => n.prs).sort((a, b) => b - a);
-  S.label2Min = Math.max(3, subs[Math.min(9, subs.length - 1)] || 0);
-  setTimeout(() => S.fg.zoomToFit(600, 40), 1800);
+  S.planFade = Math.min(1, 40 / Math.max(planLinks, 1)) ** 0.5;
   S.fg.graphData({ nodes: S.data.nodes, links: S.data.links });
+  fitAll(0);
   renderSummary();
   renderSuggestions();
   $("#thread").innerHTML = "";
   $("#suggest").classList.remove("compact");
-  addCard(`<div class="intro">Every <b class="k-walked">groove</b> is worn by real pull requests and reviews, and grows shallow when people stop walking it.
-    The <span class="k-plan">dashed violet</span> lines are what CODEOWNERS says. Press play to watch ${esc(repo)} wear in, click any area or person, or ask below.</div>`);
+  addCard(`<div class="intro">People are on the left, the folders they work in on the right.
+    A <b class="k-walked">solid line</b> is real pull requests and reviews: thicker means more work, teal means the last 45 days.
+    A <span class="k-plan">dashed violet</span> line is what CODEOWNERS says. Press play to watch ${esc(repo)} over time, click any name, or ask below.</div>`);
 }
 
 async function ingest(e) {

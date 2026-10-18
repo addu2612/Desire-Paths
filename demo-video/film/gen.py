@@ -23,7 +23,7 @@ VO = [dur(f"s{i}.wav") for i in range(1, 11)]
 # Scene length = breath before the voice + the voice + a beat after. Some scenes need room for picture.
 lead = [0.8] + [LEAD] * 9
 length = [lead[i] + VO[i] + TAIL for i in range(10)]
-length[2] = max(length[2], lead[2] + 9.4 + 5.2)   # map: the 5 s time-lapse starts at "Press play"
+length[2] = max(length[2], lead[2] + 11.7 + 5.2)   # map: the 5 s time-lapse starts at "Press play"
 length[9] = lead[9] + VO[9] + 3.2                  # close: hold the title
 start, t = [], 0.0
 for L in length:
@@ -106,10 +106,11 @@ scenes = [
     """),
     # 3. The map, then the time-lapse
     scene(3, device("m", "01-map.png", 160, 70, 1600, 900) + """
+      <div id="m-c0" class="chip" style="left:120px;top:900px">People on the left, the code they work on, on the right</div>
       <div id="m-c1" class="chip" style="left:120px;top:900px"><span class="sw-plan"></span>Dashed violet: what CODEOWNERS says</div>
-      <div id="m-c2" class="chip" style="left:120px;top:900px"><span class="sw-groove"></span>Grooves: worn by real pull requests and reviews</div>
-      <div id="m-c3" class="chip" style="left:120px;top:900px">They fade when people stop walking them</div>
-      <div id="m-c4" class="chip accent" style="left:120px;top:900px">18 months of FalkorDB, worn in</div>
+      <div id="m-c2" class="chip" style="left:120px;top:900px"><span class="sw-worn"></span>Solid lines: real pull requests and reviews</div>
+      <div id="m-c3" class="chip" style="left:120px;top:900px">They fade when people stop</div>
+      <div id="m-c4" class="chip accent" style="left:120px;top:900px">18 months of FalkorDB</div>
     """),
     # 4. Triage
     scene(4, device("q", "02-triage.png", 160, 70, 1600, 900,
@@ -196,7 +197,7 @@ audio = "\n".join(
     f'<audio id="vo{i + 1}" src="assets/s{i + 1}.wav" data-start="{round(start[i] + lead[i], 3)}" '
     f'data-duration="{VO[i]}" data-track-index="{10}" data-volume="1"></audio>' for i in range(10))
 
-lapse_start = round(start[2] + lead[2] + 9.4, 3)
+lapse_start = round(start[2] + lead[2] + 11.7, 3)
 # The time-lapse plays in the same window as scene 3's device, over the full-app camera view.
 lapse = (f'<div id="lapse-wrap" style="position:absolute;left:160px;top:70px;width:1600px;height:900px;'
          f'border-radius:28px;overflow:hidden;opacity:0;z-index:5">'

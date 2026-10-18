@@ -89,6 +89,7 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 .chip.accent { background: var(--accent); color: #fff; box-shadow: 8px 8px 18px rgb(108 99 255 / 0.35), -8px -8px 16px var(--light); }
 .chip b { font-weight: 800; }
 .sw-plan { display: block; width: 56px; height: 0; border-top: 5px dashed var(--accent); }
+.sw-worn { display: block; width: 56px; height: 8px; border-radius: 4px; background: var(--teal); }
 .sw-groove { display: block; width: 56px; height: 16px; border-radius: 8px; background: var(--groove); box-shadow: inset 3px 3px 4px rgb(163 177 198 / 0.95), inset -2px -2px 2px #fff; }
 
 /* route: the hops of the decision */
@@ -130,130 +131,131 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 </style>
 </head>
 <body>
-<div data-hf-id="hf-6bvb" id="root" data-composition-id="main" data-start="0" data-duration="119.224" data-width="1920" data-height="1080">
-<section data-hf-id="hf-ggt9" id="sc1" class="clip scene" data-start="0.0" data-duration="9.037" data-track-index="1"><div data-hf-id="hf-u04r" id="sc1-in" class="scene-in">
-      <svg data-hf-id="hf-6c1n" class="full" viewBox="0 0 1920 1080" aria-hidden="true">
-        <path data-hf-id="hf-5vp5" id="o-paved" d="M 230 760 L 1690 290" class="paved"/>
-        <g data-hf-id="hf-x9q5" id="o-groove">
-          <path data-hf-id="hf-j6z2" d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-dark" transform="translate(-3,-3)"/>
-          <path data-hf-id="hf-y7oq" d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-light" transform="translate(3,3)"/>
-          <path data-hf-id="hf-0gt6" d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-floor"/>
+<div id="root" data-composition-id="main" data-start="0" data-duration="121.524" data-width="1920" data-height="1080">
+<section id="sc1" class="clip scene" data-start="0.0" data-duration="9.037" data-track-index="1"><div id="sc1-in" class="scene-in">
+      <svg class="full" viewBox="0 0 1920 1080" aria-hidden="true">
+        <path id="o-paved" d="M 230 760 L 1690 290" class="paved"/>
+        <g id="o-groove">
+          <path d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-dark" transform="translate(-3,-3)"/>
+          <path d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-light" transform="translate(3,3)"/>
+          <path d="M 230 760 C 520 760, 560 420, 900 470 S 1330 300, 1690 290" class="g-floor"/>
         </g>
-        <circle data-hf-id="hf-4c32" id="o-walker" r="9" class="walker" cx="230" cy="760"/>
+        <circle id="o-walker" r="9" class="walker" cx="230" cy="760"/>
       </svg>
-      <div data-hf-id="hf-mjd1" id="o-l1" class="o-line" style="top:120px">Every repository has a <span data-hf-id="hf-8jzh" class="violet">paved path</span>.</div>
-      <div data-hf-id="hf-owqb" id="o-l2" class="o-line" style="top:200px">And it has <b data-hf-id="hf-wker">desire paths</b>.</div>
-      <div data-hf-id="hf-ssw4" id="o-tag1" class="tag plan" style="left:1180px;top:520px">CODEOWNERS, the org chart</div>
-      <div data-hf-id="hf-koif" id="o-tag2" class="tag" style="left:560px;top:520px">where people actually walk</div>
-      <div data-hf-id="hf-6tz6" id="o-title" class="lockup" style="left:1180px;top:780px"><span data-hf-id="hf-zeo6" class="mark"><span data-hf-id="hf-uckh"></span></span><span data-hf-id="hf-32r3">Desire Paths</span></div>
-    </div></section><section data-hf-id="hf-vbtr" id="sc2" class="clip scene" data-start="9.037" data-duration="17.896" data-track-index="1"><div data-hf-id="hf-47mi" id="sc2-in" class="scene-in">
-      <div data-hf-id="hf-dsdu" id="f-eyebrow" class="eyebrow">FalkorDB/FalkorDB · 600 merged PRs · one FalkorDB graph</div>
-      <div data-hf-id="hf-hovr" class="tiles">
-        <div data-hf-id="hf-wra8" id="f-t1" class="tile">
-          <div data-hf-id="hf-8buu" class="dial"><svg data-hf-id="hf-i2dl" viewBox="0 0 200 200"><circle data-hf-id="hf-a6vh" cx="100" cy="100" r="80" class="dial-track"/><circle data-hf-id="hf-5orl" id="f-arc" cx="100" cy="100" r="80" class="dial-arc"/></svg><div data-hf-id="hf-snca" class="dial-core"><span data-hf-id="hf-ierl" class="pct"><span data-hf-id="hf-8hze" id="f-n1">0</span>%</span></div></div>
-          <div data-hf-id="hf-mdcj" class="tile-text">of files have an official owner</div>
+      <div id="o-l1" class="o-line" style="top:120px">Every repository has a <span class="violet">paved path</span>.</div>
+      <div id="o-l2" class="o-line" style="top:200px">And it has <b>desire paths</b>.</div>
+      <div id="o-tag1" class="tag plan" style="left:1180px;top:520px">CODEOWNERS, the org chart</div>
+      <div id="o-tag2" class="tag" style="left:560px;top:520px">where people actually walk</div>
+      <div id="o-title" class="lockup" style="left:1180px;top:780px"><span class="mark"><span></span></span><span>Desire Paths</span></div>
+    </div></section><section id="sc2" class="clip scene" data-start="9.037" data-duration="17.896" data-track-index="1"><div id="sc2-in" class="scene-in">
+      <div id="f-eyebrow" class="eyebrow">FalkorDB/FalkorDB · 600 merged PRs · one FalkorDB graph</div>
+      <div class="tiles">
+        <div id="f-t1" class="tile">
+          <div class="dial"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" class="dial-track"/><circle id="f-arc" cx="100" cy="100" r="80" class="dial-arc"/></svg><div class="dial-core"><span class="pct"><span id="f-n1">0</span>%</span></div></div>
+          <div class="tile-text">of files have an official owner</div>
         </div>
-        <div data-hf-id="hf-5f63" id="f-t2" class="tile">
-          <div data-hf-id="hf-vf1u" class="big"><span data-hf-id="hf-osrr" id="f-n2" class="risk">0</span><span data-hf-id="hf-x2w7" class="of">/40</span></div>
-          <div data-hf-id="hf-wnwb" class="tile-text">newest open PRs are misrouted</div>
-          <div data-hf-id="hf-7oza" class="tile-sub">16 with nobody asked to review</div>
+        <div id="f-t2" class="tile">
+          <div class="big"><span id="f-n2" class="risk">0</span><span class="of">/40</span></div>
+          <div class="tile-text">newest open PRs are misrouted</div>
+          <div class="tile-sub">16 with nobody asked to review</div>
         </div>
-        <div data-hf-id="hf-1h22" id="f-t3" class="tile">
-          <div data-hf-id="hf-e9iu" class="big"><span data-hf-id="hf-fp5o" id="f-n3">0</span></div>
-          <div data-hf-id="hf-6lf7" class="tile-text">reviews written by AI bots</div>
-          <div data-hf-id="hf-dkb5" class="tile-sub">more than all humans combined</div>
+        <div id="f-t3" class="tile">
+          <div class="big"><span id="f-n3">0</span></div>
+          <div class="tile-text">reviews written by AI bots</div>
+          <div class="tile-sub">more than all humans combined</div>
         </div>
       </div>
-    </div></section><section data-hf-id="hf-sfvn" id="sc3" class="clip scene" data-start="26.933" data-duration="15.0" data-track-index="1"><div data-hf-id="hf-9tv1" id="sc3-in" class="scene-in">
-      <div data-hf-id="hf-br1n" id="m-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
-        <div data-hf-id="hf-rhem" class="viewport">
-          <div data-hf-id="hf-kx8d" id="m-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-3rld" id="m-img" class="shot" src="assets/01-map.png" alt="">
+    </div></section><section id="sc3" class="clip scene" data-start="26.933" data-duration="17.3" data-track-index="1"><div id="sc3-in" class="scene-in">
+      <div id="m-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
+        <div class="viewport">
+          <div id="m-cam" class="cam" data-layout-allow-overflow>
+            <img id="m-img" class="shot" src="assets/01-map.png" alt="">
             
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-otae" id="m-c1" class="chip" style="left:120px;top:900px"><span data-hf-id="hf-304d" class="sw-plan"></span>Dashed violet: what CODEOWNERS says</div>
-      <div data-hf-id="hf-4hip" id="m-c2" class="chip" style="left:120px;top:900px"><span data-hf-id="hf-x7py" class="sw-groove"></span>Grooves: worn by real pull requests and reviews</div>
-      <div data-hf-id="hf-kmg7" id="m-c3" class="chip" style="left:120px;top:900px">They fade when people stop walking them</div>
-      <div data-hf-id="hf-lllb" id="m-c4" class="chip accent" style="left:120px;top:900px">18 months of FalkorDB, worn in</div>
-    </div></section><section data-hf-id="hf-8kdz" id="sc4" class="clip scene" data-start="41.933" data-duration="9.661" data-track-index="1"><div data-hf-id="hf-l078" id="sc4-in" class="scene-in">
-      <div data-hf-id="hf-xymv" id="q-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
-        <div data-hf-id="hf-2n5u" class="viewport">
-          <div data-hf-id="hf-oc6p" id="q-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-65bm" id="q-img" class="shot" src="assets/02-triage.png" alt="">
-            <div data-hf-id="hf-yfhp" id="q-ring1" class="ring"></div><div data-hf-id="hf-2dlq" id="q-ring2" class="ring"></div>
+      <div id="m-c0" class="chip" style="left:120px;top:900px">People on the left, the code they work on, on the right</div>
+      <div id="m-c1" class="chip" style="left:120px;top:900px"><span class="sw-plan"></span>Dashed violet: what CODEOWNERS says</div>
+      <div id="m-c2" class="chip" style="left:120px;top:900px"><span class="sw-worn"></span>Solid lines: real pull requests and reviews</div>
+      <div id="m-c3" class="chip" style="left:120px;top:900px">They fade when people stop</div>
+      <div id="m-c4" class="chip accent" style="left:120px;top:900px">18 months of FalkorDB</div>
+    </div></section><section id="sc4" class="clip scene" data-start="44.233" data-duration="9.661" data-track-index="1"><div id="sc4-in" class="scene-in">
+      <div id="q-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
+        <div class="viewport">
+          <div id="q-cam" class="cam" data-layout-allow-overflow>
+            <img id="q-img" class="shot" src="assets/02-triage.png" alt="">
+            <div id="q-ring1" class="ring"></div><div id="q-ring2" class="ring"></div>
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-znx6" id="q-c1" class="chip" style="left:120px;top:900px"><b data-hf-id="hf-o4zn" class="risk">16</b>&nbsp;pull requests, nobody asked to review</div>
-      <div data-hf-id="hf-ivtm" id="q-c2" class="chip" style="left:120px;top:900px">#2647 has waited&nbsp;<b data-hf-id="hf-n5g3" class="risk">53 days</b></div>
-    </div></section><section data-hf-id="hf-uz3a" id="sc5" class="clip scene" data-start="51.594" data-duration="12.968" data-track-index="1"><div data-hf-id="hf-ukgf" id="sc5-in" class="scene-in">
-      <div data-hf-id="hf-5fom" id="r-dev" class="device" style="left:700px;top:150px;width:1120px;height:630px">
-        <div data-hf-id="hf-31gv" class="viewport">
-          <div data-hf-id="hf-ahfm" id="r-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-d821" id="r-img" class="shot" src="assets/03-route.png" alt=""><img data-hf-id="hf-fv1q" id="r-img2" class="shot" src="assets/04-approved.png" alt="">
-            <div data-hf-id="hf-zpgx" id="r-ring" class="ring"></div><div data-hf-id="hf-w2wp" id="r-tap" class="tap"></div>
+      <div id="q-c1" class="chip" style="left:120px;top:900px"><b class="risk">16</b>&nbsp;pull requests, nobody asked to review</div>
+      <div id="q-c2" class="chip" style="left:120px;top:900px">#2647 has waited&nbsp;<b class="risk">53 days</b></div>
+    </div></section><section id="sc5" class="clip scene" data-start="53.894" data-duration="12.968" data-track-index="1"><div id="sc5-in" class="scene-in">
+      <div id="r-dev" class="device" style="left:700px;top:150px;width:1120px;height:630px">
+        <div class="viewport">
+          <div id="r-cam" class="cam" data-layout-allow-overflow>
+            <img id="r-img" class="shot" src="assets/03-route.png" alt=""><img id="r-img2" class="shot" src="assets/04-approved.png" alt="">
+            <div id="r-ring" class="ring"></div><div id="r-tap" class="tap"></div>
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-ady4" class="hops">
-        <div data-hf-id="hf-awy3" id="r-h1" class="hop"><span data-hf-id="hf-2o4a" class="k">PR</span>#2647 fix(runtime)</div>
-        <div data-hf-id="hf-mdn0" id="r-a1" class="arrow"></div>
-        <div data-hf-id="hf-m1l9" id="r-h2" class="hop"><span data-hf-id="hf-voap" class="k">code</span>graph/src/runtime/</div>
-        <div data-hf-id="hf-v1iv" id="r-a2" class="arrow"></div>
-        <div data-hf-id="hf-1gog" id="r-h3" class="hop"><span data-hf-id="hf-gpiv" class="k">people</span>@AviAvni · 51% of recent work</div>
-        <div data-hf-id="hf-r3eu" id="r-a3" class="arrow"></div>
-        <div data-hf-id="hf-qxzd" id="r-h4" class="hop"><span data-hf-id="hf-bjug" class="k">load</span>3 open review requests</div>
+      <div class="hops">
+        <div id="r-h1" class="hop"><span class="k">PR</span>#2647 fix(runtime)</div>
+        <div id="r-a1" class="arrow"></div>
+        <div id="r-h2" class="hop"><span class="k">code</span>graph/src/runtime/</div>
+        <div id="r-a2" class="arrow"></div>
+        <div id="r-h3" class="hop"><span class="k">people</span>@AviAvni · 51% of recent work</div>
+        <div id="r-a3" class="arrow"></div>
+        <div id="r-h4" class="hop"><span class="k">load</span>3 open review requests</div>
       </div>
-      <div data-hf-id="hf-pu6l" id="r-c1" class="chip" style="left:700px;top:850px">Picks two reviewers, says who it ruled out</div>
-      <div data-hf-id="hf-7p2h" id="r-c2" class="chip accent" style="left:700px;top:850px">One click to approve</div>
-    </div></section><section data-hf-id="hf-76xz" id="sc6" class="clip scene" data-start="64.562" data-duration="12.712" data-track-index="1"><div data-hf-id="hf-454u" id="sc6-in" class="scene-in">
-      <div data-hf-id="hf-e9b9" id="g-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
-        <div data-hf-id="hf-3frw" class="viewport">
-          <div data-hf-id="hf-vhpr" id="g-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-z5a4" id="g-img" class="shot" src="assets/05-gone.png" alt="">
+      <div id="r-c1" class="chip" style="left:700px;top:850px">Picks two reviewers, says who it ruled out</div>
+      <div id="r-c2" class="chip accent" style="left:700px;top:850px">One click to approve</div>
+    </div></section><section id="sc6" class="clip scene" data-start="66.862" data-duration="12.712" data-track-index="1"><div id="sc6-in" class="scene-in">
+      <div id="g-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
+        <div class="viewport">
+          <div id="g-cam" class="cam" data-layout-allow-overflow>
+            <img id="g-img" class="shot" src="assets/05-gone.png" alt="">
             
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-h5oa" id="g-q" class="chip" style="left:120px;top:900px">What breaks if <b data-hf-id="hf-q3z5">@DvirDukhan</b> goes on vacation?</div>
-      <div data-hf-id="hf-091d" id="g-n1" class="stat-pop" style="left:120px;top:820px"><b data-hf-id="hf-lbw7" class="risk">27</b><span data-hf-id="hf-l4wi">open PRs lose their reviewer</span></div>
-      <div data-hf-id="hf-z465" id="g-n2" class="stat-pop" style="left:820px;top:820px"><b data-hf-id="hf-m4i9" class="risk">21</b><span data-hf-id="hf-c4m7">have no good backup</span></div>
-    </div></section><section data-hf-id="hf-8agg" id="sc7" class="clip scene" data-start="77.274" data-duration="20.179" data-track-index="1"><div data-hf-id="hf-gxvl" id="sc7-in" class="scene-in">
-      <div data-hf-id="hf-034p" id="c-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
-        <div data-hf-id="hf-3u2x" class="viewport">
-          <div data-hf-id="hf-0uob" id="c-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-29dj" id="c-img" class="shot" src="assets/06-compare.png" alt="">
-            <div data-hf-id="hf-ycgu" id="c-ring" class="ring"></div>
+      <div id="g-q" class="chip" style="left:120px;top:900px">What breaks if <b>@DvirDukhan</b> goes on vacation?</div>
+      <div id="g-n1" class="stat-pop" style="left:120px;top:820px"><b class="risk">27</b><span>open PRs lose their reviewer</span></div>
+      <div id="g-n2" class="stat-pop" style="left:820px;top:820px"><b class="risk">21</b><span>have no good backup</span></div>
+    </div></section><section id="sc7" class="clip scene" data-start="79.574" data-duration="20.179" data-track-index="1"><div id="sc7-in" class="scene-in">
+      <div id="c-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
+        <div class="viewport">
+          <div id="c-cam" class="cam" data-layout-allow-overflow>
+            <img id="c-img" class="shot" src="assets/06-compare.png" alt="">
+            <div id="c-ring" class="ring"></div>
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-8wk5" id="c-c1" class="chip" style="left:120px;top:900px">CODEOWNERS names&nbsp;<b data-hf-id="hf-bunv" class="risk">no one</b>: 0 of 40</div>
-      <div data-hf-id="hf-261t" id="c-c2" class="chip" style="left:120px;top:900px">The graph names an expert for&nbsp;<b data-hf-id="hf-zsbx">38 of 40</b></div>
-      <div data-hf-id="hf-9iyo" id="c-c3" class="chip accent" style="left:120px;top:900px">algo.maxFlow: busiest load 31 → 16</div>
-      <div data-hf-id="hf-y3v5" id="c-bt" class="backtest">
-        <div data-hf-id="hf-q63w" class="bt-title">Replayed on 300 merged PRs: did it pick someone who really reviewed?</div>
-        <div data-hf-id="hf-tml1" class="bt-row"><span data-hf-id="hf-itiv" class="bt-label">CODEOWNERS</span><div data-hf-id="hf-8a82" class="bt-bar"><span data-hf-id="hf-au9l" id="c-b1"></span></div><span data-hf-id="hf-k7qz" id="c-v1" class="bt-val">0%</span></div>
-        <div data-hf-id="hf-qxft" class="bt-row"><span data-hf-id="hf-rk2n" class="bt-label">Two busiest reviewers</span><div data-hf-id="hf-s7qe" class="bt-bar"><span data-hf-id="hf-gzze" id="c-b2"></span></div><span data-hf-id="hf-s9x4" id="c-v2" class="bt-val">0%</span></div>
-        <div data-hf-id="hf-k09f" class="bt-row win"><span data-hf-id="hf-a9x8" class="bt-label">Desire paths</span><div data-hf-id="hf-sm1f" class="bt-bar"><span data-hf-id="hf-ky3f" id="c-b3"></span></div><span data-hf-id="hf-pldp" id="c-v3" class="bt-val">0%</span></div>
-        <div data-hf-id="hf-jyyb" class="bt-foot">Top two picks · only activity from before each PR · on Apache Airflow: 44% vs 26% for CODEOWNERS</div>
+      <div id="c-c1" class="chip" style="left:120px;top:900px">CODEOWNERS names&nbsp;<b class="risk">no one</b>: 0 of 40</div>
+      <div id="c-c2" class="chip" style="left:120px;top:900px">The graph names an expert for&nbsp;<b>38 of 40</b></div>
+      <div id="c-c3" class="chip accent" style="left:120px;top:900px">algo.maxFlow: busiest load 31 → 16</div>
+      <div id="c-bt" class="backtest">
+        <div class="bt-title">Replayed on 300 merged PRs: did it pick someone who really reviewed?</div>
+        <div class="bt-row"><span class="bt-label">CODEOWNERS</span><div class="bt-bar"><span id="c-b1"></span></div><span id="c-v1" class="bt-val">0%</span></div>
+        <div class="bt-row"><span class="bt-label">Two busiest reviewers</span><div class="bt-bar"><span id="c-b2"></span></div><span id="c-v2" class="bt-val">0%</span></div>
+        <div class="bt-row win"><span class="bt-label">Desire paths</span><div class="bt-bar"><span id="c-b3"></span></div><span id="c-v3" class="bt-val">0%</span></div>
+        <div class="bt-foot">Top two picks · only activity from before each PR · on Apache Airflow: 44% vs 26% for CODEOWNERS</div>
       </div>
-    </div></section><section data-hf-id="hf-w6j2" id="sc8" class="clip scene" data-start="97.453" data-duration="8.595" data-track-index="1"><div data-hf-id="hf-gcp4" id="sc8-in" class="scene-in">
-      <div data-hf-id="hf-thbo" id="p-dev" class="device" style="left:90px;top:150px;width:860px;height:760px">
-        <div data-hf-id="hf-48dy" class="viewport">
-          <div data-hf-id="hf-tdrs" id="p-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-y9cu" id="p-img" class="shot" src="assets/07-proof.png" alt="">
+    </div></section><section id="sc8" class="clip scene" data-start="99.753" data-duration="8.595" data-track-index="1"><div id="sc8-in" class="scene-in">
+      <div id="p-dev" class="device" style="left:90px;top:150px;width:860px;height:760px">
+        <div class="viewport">
+          <div id="p-cam" class="cam" data-layout-allow-overflow>
+            <img id="p-img" class="shot" src="assets/07-proof.png" alt="">
             
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-ga6b" id="p-term" class="term">
-        <div data-hf-id="hf-wvmx" class="term-head"><i data-hf-id="hf-wt6k"></i><i data-hf-id="hf-zeb8"></i><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-gi91">any agent · MCP</span></div>
-        <pre data-hf-id="hf-oia3" id="p-code"><span data-hf-id="hf-zcvb" class="prompt">→</span> tools/call <b data-hf-id="hf-l0lt">route_pr</b>
+      <div id="p-term" class="term">
+        <div class="term-head"><i></i><i></i><i></i><span>any agent · MCP</span></div>
+        <pre id="p-code"><span class="prompt">→</span> tools/call <b>route_pr</b>
   {"repo": "FalkorDB/FalkorDB", "number": 2647}
 
-<span data-hf-id="hf-kq93" class="dim">←</span> {
+<span class="dim">←</span> {
     "primary":  "@AviAvni",
     "main_area": "graph/src/runtime",
     "share_of_recent_work": 0.51,
@@ -262,47 +264,47 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
     "proposed_action": "request_reviewers"
   }</pre>
       </div>
-      <div data-hf-id="hf-n8xx" id="p-c1" class="chip" style="left:90px;top:960px">The Cypher behind every answer</div>
-      <div data-hf-id="hf-dq2p" id="p-c2" class="chip accent" style="left:1010px;top:960px">17 tools over MCP</div>
-    </div></section><section data-hf-id="hf-peuw" id="sc9" class="clip scene" data-start="106.048" data-duration="7.165" data-track-index="1"><div data-hf-id="hf-3w2r" id="sc9-in" class="scene-in">
-      <div data-hf-id="hf-8lse" id="x-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
-        <div data-hf-id="hf-4moz" class="viewport">
-          <div data-hf-id="hf-zpgw" id="x-cam" class="cam" data-layout-allow-overflow>
-            <img data-hf-id="hf-n0hc" id="x-img" class="shot" src="assets/09-pr-files.png" alt="">
+      <div id="p-c1" class="chip" style="left:90px;top:960px">The Cypher behind every answer</div>
+      <div id="p-c2" class="chip accent" style="left:1010px;top:960px">17 tools over MCP</div>
+    </div></section><section id="sc9" class="clip scene" data-start="108.348" data-duration="7.165" data-track-index="1"><div id="sc9-in" class="scene-in">
+      <div id="x-dev" class="device" style="left:160px;top:70px;width:1600px;height:900px">
+        <div class="viewport">
+          <div id="x-cam" class="cam" data-layout-allow-overflow>
+            <img id="x-img" class="shot" src="assets/09-pr-files.png" alt="">
             
           </div>
         </div>
       </div>
-      <div data-hf-id="hf-ms36" id="x-c1" class="chip" style="left:120px;top:900px">github.com/addu2612/FalkorDB/pull/1</div>
-      <div data-hf-id="hf-b6d3" id="x-c2" class="chip accent" style="left:120px;top:900px">+23 −0 · existing rules kept, and still win</div>
-    </div></section><section data-hf-id="hf-6159" id="sc10" class="clip scene" data-start="113.213" data-duration="6.011" data-track-index="1"><div data-hf-id="hf-iw3x" id="sc10-in" class="scene-in">
-      <svg data-hf-id="hf-trgb" class="full" viewBox="0 0 1920 1080" aria-hidden="true">
-        <path data-hf-id="hf-m0ey" d="M 160 930 L 1760 760" class="paved faint"/>
-        <g data-hf-id="hf-94ub" id="e-groove">
-          <path data-hf-id="hf-bjzt" d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-dark" transform="translate(-3,-3)"/>
-          <path data-hf-id="hf-mjzl" d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-light" transform="translate(3,3)"/>
-          <path data-hf-id="hf-5vsz" d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-floor violet-floor"/>
+      <div id="x-c1" class="chip" style="left:120px;top:900px">github.com/addu2612/FalkorDB/pull/1</div>
+      <div id="x-c2" class="chip accent" style="left:120px;top:900px">+23 −0 · existing rules kept, and still win</div>
+    </div></section><section id="sc10" class="clip scene" data-start="115.513" data-duration="6.011" data-track-index="1"><div id="sc10-in" class="scene-in">
+      <svg class="full" viewBox="0 0 1920 1080" aria-hidden="true">
+        <path d="M 160 930 L 1760 760" class="paved faint"/>
+        <g id="e-groove">
+          <path d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-dark" transform="translate(-3,-3)"/>
+          <path d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-light" transform="translate(3,3)"/>
+          <path d="M 160 930 C 560 940, 760 790, 1080 830 S 1480 780, 1760 760" class="g-floor violet-floor"/>
         </g>
       </svg>
-      <div data-hf-id="hf-fcn0" id="e-lock" class="lockup center"><span data-hf-id="hf-b4zu" class="mark"><span data-hf-id="hf-l73p"></span></span><span data-hf-id="hf-jsun">Desire Paths</span></div>
-      <div data-hf-id="hf-dmxh" id="e-sub" class="e-sub">The org chart is the paved path. This is where people actually walk.</div>
-      <div data-hf-id="hf-6y04" id="e-meta" class="e-meta">Built on FalkorDB · Graph Hacks, Track 01 · github.com/addu2612/Desire-Paths</div>
+      <div id="e-lock" class="lockup center"><span class="mark"><span></span></span><span>Desire Paths</span></div>
+      <div id="e-sub" class="e-sub">The org chart is the paved path. This is where people actually walk.</div>
+      <div id="e-meta" class="e-meta">Built on FalkorDB · Graph Hacks, Track 01 · github.com/addu2612/Desire-Paths</div>
     </div></section>
-<div data-hf-id="hf-ftp4" id="lapse-wrap" style="position:absolute;left:160px;top:70px;width:1600px;height:900px;border-radius:28px;overflow:hidden;opacity:0;z-index:5"><video data-hf-id="hf-1v63" id="lapse" class="clip" src="assets/lapse.mp4" muted playsinline data-start="36.733" data-duration="5" data-track-index="2" style="width:100%;height:100%;object-fit:cover"></video></div>
-<audio data-hf-id="hf-iobi" id="vo1" src="assets/s1.wav" data-start="0.8" data-duration="7.637" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-ckqo" id="vo2" src="assets/s2.wav" data-start="9.437" data-duration="16.896" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-lg5m" id="vo3" src="assets/s3.wav" data-start="27.333" data-duration="11.861" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-kp87" id="vo4" src="assets/s4.wav" data-start="42.333" data-duration="8.661" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-u46q" id="vo5" src="assets/s5.wav" data-start="51.994" data-duration="11.968" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-6fw8" id="vo6" src="assets/s6.wav" data-start="64.962" data-duration="11.712" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-hd2z" id="vo7" src="assets/s7.wav" data-start="77.674" data-duration="19.179" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-sryx" id="vo8" src="assets/s8.wav" data-start="97.853" data-duration="7.595" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-y0s0" id="vo9" src="assets/s9.wav" data-start="106.448" data-duration="6.165" data-track-index="10" data-volume="1"></audio>
-<audio data-hf-id="hf-79ma" id="vo10" src="assets/s10.wav" data-start="113.613" data-duration="2.411" data-track-index="10" data-volume="1"></audio>
+<div id="lapse-wrap" style="position:absolute;left:160px;top:70px;width:1600px;height:900px;border-radius:28px;overflow:hidden;opacity:0;z-index:5"><video id="lapse" class="clip" src="assets/lapse.mp4" muted playsinline data-start="39.033" data-duration="5" data-track-index="2" style="width:100%;height:100%;object-fit:cover"></video></div>
+<audio id="vo1" src="assets/s1.wav" data-start="0.8" data-duration="7.637" data-track-index="10" data-volume="1"></audio>
+<audio id="vo2" src="assets/s2.wav" data-start="9.437" data-duration="16.896" data-track-index="10" data-volume="1"></audio>
+<audio id="vo3" src="assets/s3.wav" data-start="27.333" data-duration="14.144" data-track-index="10" data-volume="1"></audio>
+<audio id="vo4" src="assets/s4.wav" data-start="44.633" data-duration="8.661" data-track-index="10" data-volume="1"></audio>
+<audio id="vo5" src="assets/s5.wav" data-start="54.294" data-duration="11.968" data-track-index="10" data-volume="1"></audio>
+<audio id="vo6" src="assets/s6.wav" data-start="67.262" data-duration="11.712" data-track-index="10" data-volume="1"></audio>
+<audio id="vo7" src="assets/s7.wav" data-start="79.974" data-duration="19.179" data-track-index="10" data-volume="1"></audio>
+<audio id="vo8" src="assets/s8.wav" data-start="100.153" data-duration="7.595" data-track-index="10" data-volume="1"></audio>
+<audio id="vo9" src="assets/s9.wav" data-start="108.748" data-duration="6.165" data-track-index="10" data-volume="1"></audio>
+<audio id="vo10" src="assets/s10.wav" data-start="115.913" data-duration="2.411" data-track-index="10" data-volume="1"></audio>
 </div>
 <script>
-const T = {"start": [0.0, 9.037, 26.933, 41.933, 51.594, 64.562, 77.274, 97.453, 106.048, 113.213], "lead": [0.8, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4], "length": [9.037, 17.896, 15.0, 9.661, 12.968, 12.712, 20.179, 8.595, 7.165, 6.011], "total": 119.224};
-const R = {"01-map": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}}, "02-triage": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": -650.03125, "w": 388, "h": 1451.125}, "stats": {"x": 1378, "y": 308.21875, "w": 348, "h": 77.875}}, "03-route": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.09375, "w": 388, "h": 637.03125}, "chain": {"x": 1378, "y": 475.59375, "w": 348, "h": 248.75}, "approve": {"x": 1378, "y": 786.34375, "w": 348, "h": 90.78125}}, "04-approved": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.09375, "w": 388, "h": 637.03125}, "approve": {"x": 1378, "y": 786.34375, "w": 348, "h": 90.78125}}, "05-gone": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.125, "w": 388, "h": 1486.125}, "stats": {"x": 1378, "y": 343.375, "w": 348, "h": 77.875}}, "06-compare": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.25, "w": 388, "h": 533.75}, "table": {"x": 1378, "y": 327.5, "w": 348, "h": 334.5}}, "07-proof": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "proof": {"x": 1358, "y": 258, "w": 388, "h": 1745.15625}}};
+const T = {"start": [0.0, 9.037, 26.933, 44.233, 53.894, 66.862, 79.574, 99.753, 108.348, 115.513], "lead": [0.8, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4], "length": [9.037, 17.896, 17.3, 9.661, 12.968, 12.712, 20.179, 8.595, 7.165, 6.011], "total": 121.524};
+const R = {"01-map": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}}, "02-triage": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": -650.03125, "w": 388, "h": 1451.125}, "stats": {"x": 1378, "y": -599.78125, "w": 348, "h": 77.875}}, "03-route": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.09375, "w": 388, "h": 637.03125}, "chain": {"x": 1378, "y": 475.59375, "w": 348, "h": 248.75}, "approve": {"x": 1378, "y": 786.34375, "w": 348, "h": 90.78125}}, "04-approved": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.09375, "w": 388, "h": 637.03125}, "approve": {"x": 1378, "y": 786.34375, "w": 348, "h": 90.78125}}, "05-gone": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.125, "w": 388, "h": 1486.125}, "stats": {"x": 1378, "y": 343.375, "w": 348, "h": 77.875}}, "06-compare": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "card": {"x": 1358, "y": 258.25, "w": 388, "h": 533.75}, "table": {"x": 1378, "y": 327.5, "w": 348, "h": 334.5}}, "07-proof": {"stage": {"x": 166, "y": 184, "w": 1120, "h": 782}, "panel": {"x": 1332, "y": 100, "w": 440, "h": 940}, "map": {"x": 148, "y": 100, "w": 1156, "h": 952}, "proof": {"x": 1358, "y": 258, "w": 388, "h": 1745.15625}}};
 // Desire Paths demo film. T (scene timing) and R (element rectangles in the app screenshots) are injected by gen.py.
 const tl = gsap.timeline({ paused: true });
 const S = (i, t) => T.start[i - 1] + T.lead[i - 1] + t; // seconds after scene i's narration begins
@@ -387,13 +389,14 @@ count("#f-n3", 1600, S(2, 12.3), 1.4, (v) => (v >= 1599.5 ? "1,600+" : Math.roun
 /* 3. The map, then the time-lapse */
 camSet("m", FULL, B(3, 0));
 camTo("m", R["01-map"].stage, S(3, 0.9), 1.3, 1.0);
-show("#m-c1", S(3, 1.1), S(3, 3.4));
-show("#m-c2", S(3, 3.6), S(3, 6.7));
-show("#m-c3", S(3, 6.9), S(3, 9.0));
-camTo("m", FULL, S(3, 8.5), 0.8);
-tl.fromTo("#lapse-wrap", { opacity: 0 }, { opacity: 1, duration: 0.35 }, S(3, 9.4));
+show("#m-c0", S(3, 1.1), S(3, 3.9));
+show("#m-c1", S(3, 4.1), S(3, 6.3));
+show("#m-c2", S(3, 6.5), S(3, 9.6));
+show("#m-c3", S(3, 9.8), S(3, 11.4));
+camTo("m", FULL, S(3, 10.8), 0.8);
+tl.fromTo("#lapse-wrap", { opacity: 0 }, { opacity: 1, duration: 0.35 }, S(3, 11.7));
 tl.to("#lapse-wrap", { opacity: 0, duration: 0.3 }, END(3) - 0.3);
-show("#m-c4", S(3, 9.7), null);
+show("#m-c4", S(3, 12.0), null);
 
 /* 4. Triage */
 const qCard = { x: 1345, y: 262, w: 414, h: 520 };
@@ -428,7 +431,7 @@ show("#r-c2", S(5, 10.6), null);
 /* 6. What if someone is away */
 camSet("g", FULL, B(6, 0));
 show("#g-q", S(6, 0.1), S(6, 3.3));
-camTo("g", { x: 250, y: 240, w: 880, h: 560 }, S(6, 3.3), 1.3, 1.0);
+camTo("g", R["05-gone"].stage, S(6, 3.3), 1.3, 1.0);
 camTo("g", { x: 1350, y: 262, w: 420, h: 430 }, S(6, 6.3), 1.1, 1.0);
 show("#g-n1", S(6, 6.7), null, { y: 40 });
 show("#g-n2", S(6, 10.0), null, { y: 40 });

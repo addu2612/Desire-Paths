@@ -72,6 +72,7 @@ html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--
 .chip.accent { background: var(--accent); color: #fff; box-shadow: 8px 8px 18px rgb(108 99 255 / 0.35), -8px -8px 16px var(--light); }
 .chip b { font-weight: 800; }
 .sw-plan { display: block; width: 56px; height: 0; border-top: 5px dashed var(--accent); }
+.sw-worn { display: block; width: 56px; height: 8px; border-radius: 4px; background: var(--teal); }
 .sw-groove { display: block; width: 56px; height: 16px; border-radius: 8px; background: var(--groove); box-shadow: inset 3px 3px 4px rgb(163 177 198 / 0.95), inset -2px -2px 2px #fff; }
 
 /* route: the hops of the decision */

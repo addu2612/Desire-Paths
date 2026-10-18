@@ -90,7 +90,7 @@ select.field { appearance: none; padding-right: 40px; font-weight: 600; cursor: 
 .toggle.on { box-shadow: var(--inset); color: var(--fg); font-weight: 600; }
 .sw { width: 18px; height: 6px; border-radius: 3px; display: inline-block; }
 .sw-plan { height: 0; border-top: 2px dashed var(--accent); border-radius: 0; }
-.sw-groove { background: var(--groove); box-shadow: inset 1.5px 1.5px 2px var(--dark-strong), inset -1px -1px 1px #fff; }
+.sw-worn { height: 4px; background: var(--teal); }
 .sw-thread { height: 0; border-top: 1px solid var(--muted); border-radius: 0; }
 
 /* ---------- layout ---------- */
@@ -117,22 +117,19 @@ select.field { appearance: none; padding-right: 40px; font-weight: 600; cursor: 
 
 .map-well {
   position: relative; overflow: hidden; border-radius: 24px; box-shadow: var(--inset-deep); min-height: 420px;
-  background-color: var(--clay);
-  background-image: radial-gradient(rgb(61 72 82 / 0.09) 1px, transparent 1.2px);
-  background-size: 22px 22px;
+  background-color: #F3F5F8;
 }
-#graph { position: absolute; inset: 0; }
+#graph { position: absolute; inset: 56px 0 0 0; }
 
 #legend {
-  position: absolute; left: 22px; bottom: 20px; display: grid; gap: 7px; pointer-events: none;
-  font-size: 12px; color: var(--muted); padding: 12px 14px; border-radius: var(--r-base);
-  background: rgb(224 229 236 / 0.88); box-shadow: var(--raised-sm);
+  position: absolute; left: 16px; right: 16px; top: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; pointer-events: none;
+  font-size: 13px; color: var(--muted); padding: 6px 8px;
 }
 #legend div { display: flex; align-items: center; gap: 10px; }
 .lg { display: inline-block; width: 26px; flex: none; }
 .lg-plan { border-top: 2px dashed var(--accent); }
-.lg-groove { height: 7px; border-radius: 4px; background: var(--groove); box-shadow: inset 1.5px 1.5px 2px var(--dark-strong), inset -1px -1px 1px #fff; }
-.lg-fresh { height: 8px; background: radial-gradient(circle, var(--teal) 0 3px, transparent 3.5px) 0 0 / 9px 8px repeat-x; }
+.lg-worn { height: 5px; border-radius: 3px; background: #8A96A8; }
+.lg-fresh { height: 5px; border-radius: 3px; background: var(--teal); }
 .lg-ghost { width: 12px; height: 12px; border: 1.5px dashed var(--muted); border-radius: 50%; margin: 0 7px; }
 
 #hover {

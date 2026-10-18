@@ -82,13 +82,14 @@ count("#f-n3", 1600, S(2, 12.3), 1.4, (v) => (v >= 1599.5 ? "1,600+" : Math.roun
 /* 3. The map, then the time-lapse */
 camSet("m", FULL, B(3, 0));
 camTo("m", R["01-map"].stage, S(3, 0.9), 1.3, 1.0);
-show("#m-c1", S(3, 1.1), S(3, 3.4));
-show("#m-c2", S(3, 3.6), S(3, 6.7));
-show("#m-c3", S(3, 6.9), S(3, 9.0));
-camTo("m", FULL, S(3, 8.5), 0.8);
-tl.fromTo("#lapse-wrap", { opacity: 0 }, { opacity: 1, duration: 0.35 }, S(3, 9.4));
+show("#m-c0", S(3, 1.1), S(3, 3.9));
+show("#m-c1", S(3, 4.1), S(3, 6.3));
+show("#m-c2", S(3, 6.5), S(3, 9.6));
+show("#m-c3", S(3, 9.8), S(3, 11.4));
+camTo("m", FULL, S(3, 10.8), 0.8);
+tl.fromTo("#lapse-wrap", { opacity: 0 }, { opacity: 1, duration: 0.35 }, S(3, 11.7));
 tl.to("#lapse-wrap", { opacity: 0, duration: 0.3 }, END(3) - 0.3);
-show("#m-c4", S(3, 9.7), null);
+show("#m-c4", S(3, 12.0), null);
 
 /* 4. Triage */
 const qCard = { x: 1345, y: 262, w: 414, h: 520 };
@@ -123,7 +124,7 @@ show("#r-c2", S(5, 10.6), null);
 /* 6. What if someone is away */
 camSet("g", FULL, B(6, 0));
 show("#g-q", S(6, 0.1), S(6, 3.3));
-camTo("g", { x: 250, y: 240, w: 880, h: 560 }, S(6, 3.3), 1.3, 1.0);
+camTo("g", R["05-gone"].stage, S(6, 3.3), 1.3, 1.0);
 camTo("g", { x: 1350, y: 262, w: 420, h: 430 }, S(6, 6.3), 1.1, 1.0);
 show("#g-n1", S(6, 6.7), null, { y: 40 });
 show("#g-n2", S(6, 10.0), null, { y: 40 });
