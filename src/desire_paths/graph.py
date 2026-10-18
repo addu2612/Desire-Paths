@@ -215,11 +215,7 @@ def build(snapshot: dict, db: FalkorDB | None = None) -> dict:
 
 
 def upsert_open_pr(g, pr: dict) -> None:
-    """Add (or refresh) an open PR: who opened it, who is asked to review, which areas it touches.
-
-    Each area gets a weight: the share of changed lines in it, scaled by depth so that
-    specific areas (src/execution_plan/ops) count more than broad ones (src).
-    """
+    """Add (or refresh) an open PR: who opened it, who is asked to review, which areas it touches."""
     n = pr["number"]
     g.query("MATCH (o:OpenPR {number: $n}) DETACH DELETE o", {"n": n})
     g.query("""
@@ -236,7 +232,8 @@ def upsert_open_pr(g, pr: dict) -> None:
     for rr in pr["reviewRequests"]["nodes"]:
         who = rr["requestedReviewer"] or {}
         if who.get("login"):
-            g.query("MERGE (p:Person {login: $l}) ON CREATE SET p.bot = $bot", {"l": who["login"], "bot": is_bot(who["login"])})
+            g.query("MERGE (p:Person {login: $l}) ON CREATE SET p.bot = $bot",
+                    {"l": who["login"], "bot": is_bot(who["login"])})
             g.query("MATCH (p:Person {login: $l}), (o:OpenPR {number: $n}) CREATE (o)-[:REQUESTS]->(p)",
                     {"l": who["login"], "n": n})
         elif who.get("combinedSlug"):
@@ -248,20 +245,25 @@ def upsert_open_pr(g, pr: dict) -> None:
             g.query("MATCH (p:Person {login: $l}), (o:OpenPR {number: $n}) "
                     "CREATE (p)-[:REVIEWED_OPEN {state: $s, at: $at}]->(o)",
                     {"l": rv["author"]["login"], "n": n, "s": rv["state"], "at": epoch(rv["submittedAt"])})
-    # Changed lines per area, mapped onto the deepest area that already exists in the graph.
     existing = {r[0] for r in g.ro_query("MATCH (a:Area) RETURN a.path").result_set}
-    lines: dict[str, float] = {}
-    for f in pr["files"]["nodes"]:
-        size = (f.get("additions") or 0) + (f.get("deletions") or 0) + 1
-        chain = [a for a in areas_of(f["path"]) if a in existing]
-        for a in chain:
-            depth = 0 if a == "/" else a.count("/") + 1
-            lines[a] = lines.get(a, 0) + size * depth / AREA_DEPTH
-    total = sum(lines.values()) or 1
+    weights = area_weights([(f["path"], (f.get("additions") or 0) + (f.get("deletions") or 0))
+                            for f in pr["files"]["nodes"]], existing)
     g.query("""
         UNWIND $rows AS r MATCH (o:OpenPR {number: $n}), (a:Area {path: r.a})
         CREATE (o)-[:TOUCHES {weight: r.w}]->(a)
-    """, {"n": n, "rows": [{"a": a, "w": w / total} for a, w in lines.items() if w > 0]})
+    """, {"n": n, "rows": [{"a": a, "w": w} for a, w in weights.items()]})
+
+
+def area_weights(files: list[tuple[str, int]], existing: set[str]) -> dict[str, float]:
+    """How much of a change lands in each area: changed lines, scaled by depth so that
+    specific areas (src/execution_plan/ops) count more than broad ones (src). Sums to 1."""
+    lines: dict[str, float] = {}
+    for path, changed in files:
+        for a in areas_of(path):
+            if a in existing and a != "/":
+                lines[a] = lines.get(a, 0) + (changed + 1) * (a.count("/") + 1) / AREA_DEPTH
+    total = sum(lines.values()) or 1
+    return {a: w / total for a, w in lines.items()}
 
 
 def derive(g, now: int | None = None) -> None:

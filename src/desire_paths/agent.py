@@ -41,6 +41,11 @@ Rules:
 - Actions: you DECIDE, the user APPROVES. route_pr and pave produce a proposed action that the user
   can approve with a button under your answer. Never claim you requested reviewers or opened a PR.
 - For route_pr, explain the decision as a chain: PR -> area -> person, with why, and who was ruled out.
+- "What breaks if @x leaves / goes on vacation / is out?" -> if_gone(login). Lead with the number of stuck
+  PRs and how many have no good backup, then the areas that thin out and who covers them.
+- "How well does this routing work?" or "why trust it?" -> backtest. "How should we split the queue?" or
+  "who is overloaded?" -> compare_routing (CODEOWNERS vs. graph vs. max-flow balanced).
+- "What knowledge are we losing?" -> fading_paths. "How do I start contributing to X?" -> onboard.
 """
 
 TOOL_SPECS = [
@@ -66,12 +71,29 @@ TOOL_SPECS = [
      {"number": "PR number"}),
     ("triage", "Sweep the open review queue: PRs with nobody asked to review, absent or wrong reviewers, "
                "or long waits, each with suggested reviewers.", {}),
+    ("if_gone", "What breaks if a person leaves or goes on vacation: removes them from the graph and re-walks "
+                "it. Returns open PRs that get stuck and whether each has a good backup reviewer, areas that "
+                "are orphaned or thin, who covers each area next, and whose code loses its main reviewer.",
+     {"login": "GitHub login of the person who is away"}),
+    ("compare_routing", "Compare three ways to route today's open review queue: CODEOWNERS, best graph fit, and "
+                        "a load-balanced plan solved as max-flow (algo.maxFlow) with the smallest per-person cap. "
+                        "Reports coverage, fit, and the most reviews landing on one person.", {}),
+    ("backtest", "Measure the router on history: replays merged PRs using only activity from before each PR, "
+                 "hides who reviewed, and scores CODEOWNERS, the two busiest reviewers, the graph, and the "
+                 "balanced graph by how often their picks include a real reviewer.", {}),
+    ("fading_paths", "Knowledge that is fading: areas whose main expert stopped working there, and whether "
+                     "anyone active has picked the work up.", {}),
+    ("onboard", "A newcomer's way into an area: who to ask, small well-discussed PRs to read first, areas that "
+                "change with it, and (with their login) the shortest review chain to the right person.",
+     {"area": "directory path or name", "login": "the newcomer's GitHub login, or empty"}),
     ("cypher", "Run a read-only Cypher query on the graph for anything the other tools miss.",
      {"query": "a read-only Cypher query"}),
 ]
 
 
 TOOL_NAMES = {name for name, _, _ in TOOL_SPECS}
+# The UI renders a card from these tools' data, not only the model's prose.
+CARD_TOOLS = {"route_pr", "triage", "pave", "if_gone", "compare_routing", "backtest", "fading_paths", "onboard"}
 
 
 def openai_tools() -> list[dict]:
@@ -81,7 +103,7 @@ def openai_tools() -> list[dict]:
             "name": name, "description": desc,
             "parameters": {"type": "object", "properties": {k: {"type": "string", "description": v}
                                                               for k, v in params.items()},
-                           "required": list(params)},
+                           "required": [k for k, v in params.items() if "or empty" not in v]},
         },
     } for name, desc, params in TOOL_SPECS]
 
@@ -130,8 +152,9 @@ class Agent:
         empty = {"nodes": [], "links": []}
         if name not in TOOL_NAMES:
             return {"data": f"unknown tool {name}", "evidence": [], "highlight": empty}
+        args = {k: v for k, v in args.items() if v not in ("", None)}
         try:
-            return getattr(self.tools, name)(**args)
+            return self.tools.run(name, **args)
         except Exception as e:  # report tool failures to the model instead of crashing the turn
             return {"data": f"tool error: {e}", "evidence": [], "highlight": empty}
 
@@ -189,8 +212,9 @@ class Agent:
                 highlight["nodes"] += result["highlight"]["nodes"]
                 highlight["links"] += result["highlight"]["links"]
                 step = {"type": "step", "tool": name, "args": args, "label": _summarise(name, args),
-                        "highlight": result["highlight"], "evidence": result.get("evidence", [])}
-                if name in ("route_pr", "triage", "pave"):
+                        "highlight": result["highlight"], "evidence": result.get("evidence", []),
+                        "proof": result.get("proof", [])}
+                if name in CARD_TOOLS:
                     step["data"] = result["data"]  # the UI renders decision cards for these
                 yield step
                 payload = json.dumps({"data": result["data"], "evidence": result.get("evidence", [])},

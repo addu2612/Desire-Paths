@@ -15,6 +15,7 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
+from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from desire_paths import actions as A  # noqa: E402
@@ -23,7 +24,6 @@ from desire_paths.agent import Agent, make_client  # noqa: E402
 from desire_paths.github import load_snapshot  # noqa: E402
 from desire_paths.mcp_server import mcp  # noqa: E402
 from desire_paths.tools import GraphTools  # noqa: E402
-from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
 WEB = Path(__file__).resolve().parents[2] / "web"
 # The MCP endpoint lives at /mcp on the same server, so a deployed URL works in any MCP client.
@@ -155,7 +155,7 @@ def graph_view(owner: str, name: str, max_people: int = 60):
     for a, b, n, last in collab:
         links.append({"source": f"p:{a}", "target": f"p:{b}", "kind": "collab", "n": n, "last": last})
     # Trimming paths per area can leave someone with no links at all; they would only float off-map.
-    linked = {l["source"] for l in links} | {l["target"] for l in links}
+    linked = {link["source"] for link in links} | {link["target"] for link in links}
     kept_nodes = [n for n in nodes.values() if n["kind"] == "area" or n["id"] in linked]
     return {"nodes": kept_nodes, "links": links, "now": int(time.time())}
 
@@ -164,11 +164,12 @@ def graph_view(owner: str, name: str, max_people: int = 60):
 def run_tool(owner: str, name: str, tool: str, arg: str | None = None, arg2: str | None = None):
     tools = GraphTools(repo_graph(f"{owner}/{name}"), f"{owner}/{name}")
     allowed = {"who_knows", "person", "bus_factor", "hidden_bottlenecks", "blueprint_drift", "pave",
-               "silos", "influence", "intro_path", "who_knows_topic", "route_pr", "triage"}
+               "silos", "influence", "intro_path", "who_knows_topic", "route_pr", "triage",
+               "if_gone", "compare_routing", "backtest", "fading_paths", "onboard"}
     if tool not in allowed:
         raise HTTPException(400, "unknown tool")
-    args = [a for a in (arg, arg2) if a is not None]
-    return getattr(tools, tool)(*args)
+    args = [a for a in (arg, arg2) if a not in (None, "")]
+    return tools.run(tool, *args)
 
 
 class Ask(BaseModel):
@@ -216,9 +217,7 @@ def act(body: Act):
             return A.request_reviewers(g, body.repo, body.number, reviewers, decision, body.confirm)
         if body.kind == "open_codeowners_pr":
             paved = tools.pave()["data"]
-            header = "# Drafted by Desire Paths from recent authorship and review activity\n"
-            return A.open_codeowners_pr(g, body.repo, header + paved["codeowners"] + "\n",
-                                        paved["changes_vs_today"], body.confirm)
+            return A.open_codeowners_pr(g, body.repo, paved["codeowners"], paved["changes_vs_today"], body.confirm)
     except HTTPException:
         raise
     except Exception as e:

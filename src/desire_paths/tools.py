@@ -37,18 +37,14 @@ def ago(ts: int | None) -> str:
     return f"{days // 30}mo ago"
 
 
-def _rows(g, query: str, params: dict | None = None) -> list[list]:
-    return g.ro_query(query, params or {}).result_set
-
-
 def _empty() -> dict:
     return {"nodes": [], "links": []}
 
 
-def activity_factor(last: int | None) -> float:
+def activity_factor(last: int | None, now: float | None = None) -> float:
     if not last:
         return 0.05
-    days = (time.time() - last) / DAY
+    days = ((now or time.time()) - last) / DAY
     return 1.0 if days < 30 else 0.7 if days < 90 else 0.3 if days < 180 else 0.1
 
 
@@ -56,14 +52,40 @@ class GraphTools:
     def __init__(self, graph, repo: str | None = None):
         self.g = graph
         self.repo = repo
+        # Every Cypher query a tool runs, so the UI can show the graph proof behind an answer.
+        self.trace: list[dict] = []
 
     # ---------- helpers ----------
+
+    def _q(self, query: str, params: dict | None = None) -> list[list]:
+        t = time.perf_counter()
+        rows = self.g.ro_query(query, params or {}).result_set
+        self.trace.append({"cypher": _tidy(query), "params": _short(params or {}), "rows": len(rows),
+                           "ms": round((time.perf_counter() - t) * 1000, 1)})
+        return rows
+
+    def run(self, name: str, *args, **kwargs) -> dict:
+        """Call a tool and attach the Cypher it ran."""
+        self.trace = []
+        result = getattr(self, name)(*args, **kwargs)
+        # The same query run once per PR is one step of proof, not forty.
+        proof: dict[str, dict] = {}
+        for step in self.trace:
+            seen = proof.get(step["cypher"])
+            if seen:
+                seen["runs"] += 1
+                seen["rows"] += step["rows"]
+                seen["ms"] = round((seen["ms"] or 0) + (step["ms"] or 0), 1)
+            else:
+                proof[step["cypher"]] = {**step, "runs": 1}
+        result["proof"] = list(proof.values())[:14]
+        return result
 
     def resolve_area(self, query: str) -> str | None:
         q = query.strip().strip("/").lower()
         if q in ("", "root", "(root)", "everything", "repo"):
             return "/"
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (a:Area) WHERE toLower(a.path) = $q OR toLower(a.name) = $q
                OR toLower(a.path) ENDS WITH ('/' + $q) OR toLower(a.path) CONTAINS $q
             RETURN a.path, a.prs, toLower(a.path) = $q OR toLower(a.name) = $q AS exact
@@ -72,14 +94,14 @@ class GraphTools:
         return rows[0][0] if rows else None
 
     def _official(self, area: str) -> list[dict]:
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (o)-[r:OFFICIAL]->(:Area {path: $a})
             RETURN labels(o)[0], coalesce(o.slug, o.login), r.coverage ORDER BY r.coverage DESC
         """, {"a": area})
         return [{"owner": n, "kind": lbl, "coverage": round(c, 2)} for lbl, n, c in rows]
 
     def _evidence_for(self, login: str, area: str, limit: int = 3) -> list[dict]:
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (p:Person {login: $login})-[r:AUTHORED|REVIEWED]->(x:PR)-[:IN_AREA]->(:Area {path: $a})
             RETURN DISTINCT x.number, x.title, x.url, x.merged, type(r) ORDER BY x.merged DESC LIMIT $n
         """, {"login": login, "a": area, "n": limit})
@@ -90,7 +112,7 @@ class GraphTools:
     # ---------- tools ----------
 
     def find_areas(self, query: str) -> dict:
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (a:Area) WHERE toLower(a.path) CONTAINS toLower($q)
             RETURN a.path, a.prs, a.files ORDER BY a.prs DESC LIMIT 12
         """, {"q": query})
@@ -102,18 +124,18 @@ class GraphTools:
         path = self.resolve_area(area)
         if not path:
             return self.who_knows_topic(area)
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (p:Human)-[w:WORN]->(a:Area {path: $a})
             RETURN p.login, w.score, w.prs, w.authored, w.reviewed, w.last
             ORDER BY w.score DESC LIMIT 6
         """, {"a": path})
         total = sum(r[1] for r in rows) or 1
-        people = [{"login": l, "share_of_recent_work": round(s / total, 2), "prs": n, "authored": au,
-                   "reviewed": rv, "last_active": ago(last)} for l, s, n, au, rv, last in rows]
+        people = [{"login": login, "share_of_recent_work": round(s / total, 2), "prs": n, "authored": au,
+                   "reviewed": rv, "last_active": ago(last)} for login, s, n, au, rv, last in rows]
         official = self._official(path)
         # Is each official owner actually active here?
         for o in official:
-            act = _rows(self.g, """
+            act = self._q("""
                 MATCH (p:Person {login: $o})-[w:WORN]->(:Area {path: $a}) RETURN w.prs, w.last
             """, {"o": o["owner"], "a": path}) if o["kind"] != "Team" else []
             o["active_here"] = {"prs": act[0][0], "last": ago(act[0][1])} if act else None
@@ -124,7 +146,7 @@ class GraphTools:
             "data": {"area": path, "official_owners": official or "none - no CODEOWNERS rule covers this area",
                      "actual_people": people},
             "evidence": evidence,
-            "highlight": {"nodes": [aid(path)] + [l[0] for l in links], "links": links},
+            "highlight": {"nodes": [aid(path)] + [link[0] for link in links], "links": links},
         }
 
     def who_knows_topic(self, topic: str) -> dict:
@@ -133,7 +155,7 @@ class GraphTools:
         if not terms:
             return {"data": "no searchable terms", "evidence": [], "highlight": _empty()}
         try:
-            rows = _rows(self.g, """
+            rows = self._q("""
                 CALL db.idx.fulltext.queryNodes('PR', $q) YIELD node, score
                 WITH node AS x, score ORDER BY score DESC LIMIT 25
                 MATCH (p:Human)-[r:AUTHORED|REVIEWED]->(x)
@@ -149,7 +171,7 @@ class GraphTools:
             people.append({"login": login, "weight": weight, "matching_prs": len(prs), "last": ago(prs[0]["m"])})
             evidence += [{"kind": "PR", "number": x["n"], "title": x["t"], "url": x["u"], "when": ago(x["m"]),
                           "by": login} for x in prs[:2]]
-        areas = _rows(self.g, """
+        areas = self._q("""
             CALL db.idx.fulltext.queryNodes('PR', $q) YIELD node
             MATCH (node)-[:IN_AREA]->(a:Area) WHERE a.depth >= 2
             RETURN a.path, count(*) AS c ORDER BY c DESC LIMIT 3
@@ -161,7 +183,7 @@ class GraphTools:
 
     def bus_factor(self, min_prs: int = 8) -> dict:
         """Areas where one person did most of the recent work."""
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (p:Human)-[w:WORN]->(a:Area) WHERE a.depth >= 1 AND a.depth <= 3 AND a.prs >= $min
             WITH a, w, p ORDER BY w.score DESC
             WITH a, collect({login: p.login, score: w.score}) AS ppl, sum(w.score) AS total
@@ -179,7 +201,7 @@ class GraphTools:
 
     def hidden_bottlenecks(self) -> dict:
         """Betweenness centrality on the review graph: who connects otherwise separate people."""
-        rows = _rows(self.g, """
+        rows = self._q("""
             CALL algo.betweenness({nodeLabels: ['Human'], relationshipTypes: ['COLLAB']})
             YIELD node, score WHERE score > 0
             WITH node, score ORDER BY score DESC LIMIT 6
@@ -189,23 +211,23 @@ class GraphTools:
             RETURN node.login, score, owns, count(DISTINCT other) AS partners
             ORDER BY score DESC
         """)
-        data = [{"login": l, "betweenness": round(s, 1), "official_areas": o, "review_partners": n}
-                for l, s, o, n in rows]
+        data = [{"login": login, "betweenness": round(s, 1), "official_areas": o, "review_partners": n}
+                for login, s, o, n in rows]
         return {"data": data, "evidence": [],
                 "highlight": {"nodes": [pid(d["login"]) for d in data], "links": []}}
 
     def influence(self) -> dict:
         """PageRank on reviewer->author edges: whose code review the most-reviewed people rely on."""
-        rows = _rows(self.g, """
+        rows = self._q("""
             CALL algo.pageRank('Human', 'COLLAB') YIELD node, score
             RETURN node.login, score ORDER BY score DESC LIMIT 8
         """)
-        return {"data": [{"login": l, "pagerank": round(s, 5)} for l, s in rows], "evidence": [],
-                "highlight": {"nodes": [pid(l) for l, _ in rows], "links": []}}
+        return {"data": [{"login": login, "pagerank": round(s, 5)} for login, s in rows], "evidence": [],
+                "highlight": {"nodes": [pid(login) for login, _ in rows], "links": []}}
 
     def silos(self) -> dict:
         """Community detection on the review graph, with each group's home areas."""
-        rows = _rows(self.g, """
+        rows = self._q("""
             CALL algo.labelPropagation({nodeLabels: ['Human'], relationshipTypes: ['COLLAB'], maxIterations: 20})
             YIELD node, communityId
             WITH communityId, collect(node) AS members WHERE size(members) >= 2
@@ -218,7 +240,7 @@ class GraphTools:
         groups = [{"group": cid, "members": m, "home_areas": a} for cid, m, a in rows]
         # How many review links cross between each pair of groups?
         index = {login: g["group"] for g in groups for login in g["members"]}
-        cross = _rows(self.g, """
+        cross = self._q("""
             MATCH (a:Human)-[c:COLLAB]->(b:Human) WHERE a.login IN $logins AND b.login IN $logins
             RETURN a.login, b.login, c.n
         """, {"logins": list(index)})
@@ -228,39 +250,41 @@ class GraphTools:
             if ga != gb:
                 key = "-".join(map(str, sorted((ga, gb))))
                 between[key] = between.get(key, 0) + n
-        return {"data": {"groups": groups, "reviews_between_groups": between or "none - groups never review each other"},
-                "evidence": [], "highlight": {"nodes": [pid(l) for l in index], "links": []}}
+        return {"data": {"groups": groups,
+                         "reviews_between_groups": between or "none - groups never review each other"},
+                "evidence": [], "highlight": {"nodes": [pid(login) for login in index], "links": []}}
 
     def intro_path(self, from_login: str, to_login: str) -> dict:
         """Shortest chain of review relationships between two people."""
         for a, b in ((from_login, to_login), (to_login, from_login)):
-            rows = _rows(self.g, """
+            rows = self._q("""
                 MATCH (s:Person {login: $a}), (t:Person {login: $b})
                 CALL algo.SPpaths({sourceNode: s, targetNode: t, relTypes: ['COLLAB'], maxLen: 6, pathCount: 1})
                 YIELD path RETURN [n IN nodes(path) | n.login]
             """, {"a": a, "b": b})
             if rows:
                 chain = rows[0][0] if a == from_login else list(reversed(rows[0][0]))
-                links = [[pid(x), pid(y), "path"] for x, y in zip(chain, chain[1:])]
+                links = [[pid(x), pid(y), "path"] for x, y in zip(chain, chain[1:], strict=False)]
                 return {"data": {"chain": chain, "hops": len(chain) - 1}, "evidence": [],
                         "highlight": {"nodes": [pid(x) for x in chain], "links": links}}
         return {"data": f"no review chain connects {from_login} and {to_login}", "evidence": [],
                 "highlight": {"nodes": [pid(from_login), pid(to_login)], "links": []}}
 
     def person(self, login: str) -> dict:
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (p:Person {login: $l})-[w:WORN]->(a:Area) WHERE a.depth >= 2
             RETURN a.path, w.prs, w.authored, w.last, w.score ORDER BY w.score DESC LIMIT 6
         """, {"l": login})
-        partners = _rows(self.g, """
+        partners = self._q("""
             MATCH (p:Person {login: $l})-[c:COLLAB]-(o:Human)
             RETURN o.login, sum(c.n) AS n ORDER BY n DESC LIMIT 5
         """, {"l": login})
-        official = _rows(self.g, """
+        official = self._q("""
             MATCH (p:Person {login: $l})-[r:OFFICIAL]->(a:Area) WHERE a.depth <= 2 RETURN a.path LIMIT 10
         """, {"l": login})
         return {"data": {"login": login,
-                         "works_on": [{"area": a, "prs": n, "authored": au, "last": ago(la)} for a, n, au, la, _ in rows],
+                         "works_on": [{"area": a, "prs": n, "authored": au, "last": ago(la)}
+                                      for a, n, au, la, _ in rows],
                          "reviews_with": [{"login": o, "reviews": n} for o, n in partners],
                          "officially_owns": [a for (a,) in official] or "nothing in CODEOWNERS"},
                 "evidence": [],
@@ -269,14 +293,14 @@ class GraphTools:
 
     def blueprint_drift(self) -> dict:
         """Where CODEOWNERS and reality disagree: busy areas with no owner, and owners who are absent."""
-        unowned = _rows(self.g, """
+        unowned = self._q("""
             MATCH (a:Area) WHERE a.depth >= 1 AND a.depth <= 2 AND a.prs >= 5 AND NOT ()-[:OFFICIAL]->(a)
             OPTIONAL MATCH (p:Human)-[w:WORN]->(a)
             WITH a, p, w ORDER BY w.score DESC
             WITH a, collect(p.login)[0..2] AS actual
             RETURN a.path, a.prs, actual ORDER BY a.prs DESC LIMIT 8
         """)
-        ghosts = _rows(self.g, """
+        ghosts = self._q("""
             MATCH (o:Person)-[r:OFFICIAL]->(a:Area) WHERE a.depth >= 1 AND a.depth <= 3 AND a.prs >= 5
               AND r.coverage >= 0.5
             OPTIONAL MATCH (o)-[w:WORN]->(a)
@@ -286,16 +310,17 @@ class GraphTools:
             WITH o, a, w, collect(p.login)[0] AS actual
             RETURN o.login, a.path, a.prs, w.last, actual ORDER BY a.prs DESC LIMIT 8
         """, {"cutoff": int(time.time()) - 120 * DAY})
-        team_owned = _rows(self.g, """
+        team_owned = self._q("""
             MATCH (t:Team)-[r:OFFICIAL]->(a:Area) WHERE a.depth = 1 RETURN t.slug, a.path, r.coverage LIMIT 6
         """)
-        cov = _rows(self.g, "MATCH (r:Area {path: '/'}) OPTIONAL MATCH ()-[o:OFFICIAL]->(r) RETURN max(o.coverage)")
+        cov = self._q("MATCH (r:Area {path: '/'}) OPTIONAL MATCH ()-[o:OFFICIAL]->(r) RETURN max(o.coverage)")
         data = {
             "share_of_files_with_an_official_owner": round(cov[0][0] or 0, 2),
-            "busy_areas_with_no_official_owner": [{"area": a, "prs": n, "actually_worked_on_by": p} for a, n, p in unowned],
+            "busy_areas_with_no_official_owner": [{"area": a, "prs": n, "actually_worked_on_by": p}
+                                                  for a, n, p in unowned],
             "official_owners_absent_for_4_months": [{"owner": o, "area": a, "prs_in_area": n,
-                                                     "owner_last_active_here": ago(l), "actually_led_by": act}
-                                                    for o, a, n, l, act in ghosts],
+                                                     "owner_last_active_here": ago(seen), "actually_led_by": act}
+                                                    for o, a, n, seen, act in ghosts],
             "team_ownership": [{"team": t, "area": a, "coverage": round(c, 2)} for t, a, c in team_owned],
         }
         nodes = [aid(a) for a, _, _ in unowned] + [aid(g[1]) for g in ghosts] + [pid(g[0]) for g in ghosts]
@@ -304,33 +329,51 @@ class GraphTools:
         return {"data": data, "evidence": [], "highlight": {"nodes": nodes, "links": links}}
 
     def pave(self, min_share: float = 0.25) -> dict:
-        """Draft CODEOWNERS lines from desire paths: pave where people actually walk."""
-        rows = _rows(self.g, """
+        """Draft CODEOWNERS lines from desire paths: pave where people actually walk.
+
+        Paving only adds. Areas an existing rule already covers completely are left alone (the existing
+        rules are kept and come last, so they would win anyway), and a folder that would get the same
+        owners as its parent needs no line of its own.
+        """
+        rows = self._q("""
             MATCH (p:Human)-[w:WORN]->(a:Area) WHERE a.depth >= 1 AND a.depth <= 2 AND a.prs >= 4
             WITH a, p, w ORDER BY w.score DESC
             WITH a, collect({login: p.login, score: w.score, authored: w.authored}) AS ppl, sum(w.score) AS total
             OPTIONAL MATCH (o)-[off:OFFICIAL]->(a)
-            RETURN a.path, ppl[0..3], total, collect(coalesce(o.slug, o.login)), a.prs ORDER BY a.prs DESC
+            RETURN a.path, ppl[0..3], total, collect(coalesce(o.slug, o.login)), a.prs, max(off.coverage)
+            ORDER BY a.prs DESC
         """)
-        lines, changes = [], []
-        for path, ppl, total, official, _ in rows:
+        picked, changes = {}, []
+        for path, ppl, total, official, _, covered in rows:
+            if (covered or 0) >= 0.999:
+                continue
             picks = [p["login"] for p in ppl if total and p["score"] / total >= min_share and p["authored"] > 0][:2]
-            if not picks:
+            if picks:
+                picked[path] = (picks, official)
+        lines = []
+        for path in sorted(picked):
+            picks, official = picked[path]
+            parent = path.rsplit("/", 1)[0] if "/" in path else None
+            if parent in picked and set(picked[parent][0]) == set(picks):
                 continue
             lines.append(f"/{path}/".ljust(40) + " ".join("@" + p for p in picks))
             if set(picks) != set(official):
                 changes.append({"area": path, "today": official or "nobody", "suggested": picks})
-        return {"data": {"codeowners": "\n".join(sorted(lines)), "changes_vs_today": changes[:15]}, "evidence": [],
+        changes.sort(key=lambda c: c["today"] != "nobody")
+        return {"data": {"codeowners": "\n".join(lines), "changes_vs_today": changes[:15],
+                         "note": "Existing CODEOWNERS rules are kept unchanged and placed last, so they still win."},
+                "evidence": [],
                 "highlight": {"nodes": [aid(c["area"]) for c in changes], "links":
                               [[pid(p), aid(c["area"]), "worn"] for c in changes for p in c["suggested"]]}}
 
     # ---------- decisions on open PRs ----------
 
-    def _candidates(self, number: int, limit: int = 12, extra_load: dict | None = None) -> list[dict]:
+    def _candidates(self, number: int, limit: int = 12, extra_load: dict | None = None,
+                    exclude: list[str] | None = None) -> list[dict]:
         """Multi-hop: open PR -> areas it touches -> people who walk those areas -> their review load."""
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (o:OpenPR {number: $n})-[t:TOUCHES]->(a:Area)<-[w:WORN]-(p:Human)
-            WHERE NOT (p)-[:OPENED_PR]->(o) AND a.wear > 0
+            WHERE NOT (p)-[:OPENED_PR]->(o) AND a.wear > 0 AND NOT p.login IN $ex
             WITH o, p, sum(t.weight * w.score / a.wear) AS fit, max(w.last) AS last,
                  collect({area: a.path, share: w.score / a.wear, prs: w.prs, tw: t.weight}) AS via
             OPTIONAL MATCH (p)<-[:REQUESTS]-(q:OpenPR) WHERE q.number <> $n AND NOT q.draft
@@ -338,7 +381,7 @@ class GraphTools:
             OPTIONAL MATCH (p)-[c:COLLAB]->(:Person)-[:OPENED_PR]->(o)
             RETURN p.login, fit, last, via, load, coalesce(max(c.n), 0)
             ORDER BY fit DESC LIMIT $k
-        """, {"n": number, "k": limit})
+        """, {"n": number, "k": limit, "ex": exclude or []})
         out = []
         for login, fit, last, via, load, familiar in rows:
             load += (extra_load or {}).get(login, 0)
@@ -352,7 +395,7 @@ class GraphTools:
         from desire_paths.github import fetch_pr
         from desire_paths.graph import upsert_open_pr
 
-        have = _rows(self.g, "MATCH (o:OpenPR {number: $n}) RETURN o.number", {"n": number})
+        have = self._q("MATCH (o:OpenPR {number: $n}) RETURN o.number", {"n": number})
         if (live or not have) and self.repo:
             try:
                 pr = fetch_pr(self.repo, number)
@@ -362,7 +405,7 @@ class GraphTools:
                 upsert_open_pr(self.g, pr)
             elif pr and not have:
                 return {"error": f"PR #{number} is {pr.get('state', 'not open').lower()}"}
-        rows = _rows(self.g, """
+        rows = self._q("""
             MATCH (o:OpenPR {number: $n})
             OPTIONAL MATCH (au:Person)-[:OPENED_PR]->(o)
             OPTIONAL MATCH (o)-[:REQUESTS]->(r)
@@ -383,7 +426,7 @@ class GraphTools:
         if not pr or pr.get("error"):
             return {"data": (pr or {}).get("error") or f"PR #{number} not found", "evidence": [],
                     "highlight": _empty()}
-        areas = _rows(self.g, """
+        areas = self._q("""
             MATCH (:OpenPR {number: $n})-[t:TOUCHES]->(a:Area) WHERE a.depth >= 1
             RETURN a.path, t.weight ORDER BY t.weight DESC LIMIT 5
         """, {"n": number})
@@ -434,14 +477,15 @@ class GraphTools:
             elif not c:
                 verdicts.append({"requested": r, "verdict": "no recent work in the areas this PR touches"})
             elif activity_factor(c["last"]) < 0.7:
-                verdicts.append({"requested": r, "verdict": f"knows the area but inactive (last seen {ago(c['last'])})"})
+                verdicts.append({"requested": r,
+                                 "verdict": f"knows the area but inactive (last seen {ago(c['last'])})"})
             else:
                 verdicts.append({"requested": r, "verdict": "good choice"})
         evidence = self._evidence_for(primary["login"], top_area["area"], 3)
         if second:
             evidence += self._evidence_for(second["login"], second["via"][0]["area"], 2)
         picks = [primary] + ([second] if second else [])
-        acted = _rows(self.g, """
+        acted = self._q("""
             MATCH (x:Action)-[:FOR]->(:OpenPR {number: $n}) RETURN x.kind, x.status, x.at, x.url ORDER BY x.at DESC
         """, {"n": number})
         data = {
@@ -462,7 +506,7 @@ class GraphTools:
 
     def triage(self, limit: int = 40) -> dict:
         """Sweep the open review queue and flag PRs whose routing is broken."""
-        prs = _rows(self.g, """
+        prs = self._q("""
             MATCH (o:OpenPR) WHERE NOT o.draft AND o.updated > $since
             OPTIONAL MATCH (au:Person)-[:OPENED_PR]->(o)
             OPTIONAL MATCH (o)-[:REQUESTS]->(r)
@@ -514,6 +558,219 @@ class GraphTools:
                               "when": "open"} for f in flagged[:6]],
                 "highlight": {"nodes": [pid(x) for f in flagged[:10] for x in f["suggested"]], "links": []}}
 
+    # ---------- what-ifs and early warnings ----------
+
+    def if_gone(self, login: str) -> dict:
+        """Remove one person from the graph and re-walk it: which PRs get stuck, which areas thin out,
+        who reviews next, and whose code loses its main reviewer."""
+        login = login.strip().lstrip("@")
+        if not self._q("MATCH (p:Person {login: $l}) RETURN p.login", {"l": login}):
+            return {"data": f"@{login} is not in the graph", "evidence": [], "highlight": _empty()}
+        now = time.time()
+
+        # Areas where they carry a real share of the recent work, and who is left once they are gone.
+        rows = self._q("""
+            MATCH (p:Human {login: $l})-[w:WORN]->(a:Area)
+            WHERE a.depth >= 1 AND a.depth <= 3 AND a.prs >= 3 AND a.wear > 0 AND w.score / a.wear >= 0.2
+            OPTIONAL MATCH (q:Human)-[w2:WORN]->(a) WHERE q.login <> $l
+            WITH a, w, q, w2 ORDER BY w2.score DESC
+            WITH a, w, collect({login: q.login, share: w2.score / a.wear, last: w2.last, prs: w2.prs}) AS rest
+            RETURN a.path, a.depth, a.prs, w.score / a.wear AS share, w.prs, rest
+            ORDER BY share * a.prs DESC LIMIT 40
+        """, {"l": login})
+        areas = []
+        for path, depth, prs, share, their_prs, rest in rows:
+            left = [r for r in rest if r["login"] and activity_factor(r["last"], now) >= 0.7]
+            nxt = left[0] if left else None
+            status = "orphaned" if not nxt else "thin" if nxt["share"] < 0.15 else "covered"
+            areas.append({"area": path, "depth": depth, "prs": prs, "their_share": round(share, 2),
+                          "their_prs": their_prs, "status": status,
+                          "next_person": nxt and nxt["login"], "next_share": nxt and round(nxt["share"], 2)})
+        # A sub-area that tells the same story as its parent adds nothing.
+        seen = {(a["area"], a["status"], a["next_person"]) for a in areas}
+        areas = [a for a in areas if "/" not in a["area"]
+                 or (a["area"].rsplit("/", 1)[0], a["status"], a["next_person"]) not in seen]
+        # Specific folders say more than "src" or "tests"; fall back to top level only if that is all there is.
+        specific = [a for a in areas if a["depth"] >= 2]
+        areas = specific if len(specific) >= 3 else areas
+        order = {"orphaned": 0, "thin": 1, "covered": 2}
+        areas.sort(key=lambda a: (order[a["status"]], -a["their_share"] * a["prs"]))
+
+        # Open PRs that are waiting on them, or where they are the best reviewer the graph can find.
+        queue = self._q("""
+            MATCH (o:OpenPR) WHERE NOT o.draft AND o.updated > $since
+            OPTIONAL MATCH (o)-[:REQUESTS]->(r:Person {login: $l})
+            OPTIONAL MATCH (au:Person)-[:OPENED_PR]->(o)
+            RETURN o.number, o.title, o.url, r IS NOT NULL, au.login, o.updated AS updated
+            ORDER BY updated DESC LIMIT 60
+        """, {"l": login, "since": int(now) - 60 * DAY})
+        stuck, evidence = [], []
+        for n, title, url, requested, author, _ in queue:
+            if author == login:
+                continue
+            cands = self._candidates(n, 6)
+            best = cands[0]["login"] if cands else None
+            if not requested and best != login:
+                continue
+            nxt = next((c for c in self._candidates(n, 6, exclude=[login])
+                        if activity_factor(c["last"], now) >= 0.7), None)
+            mine = next((c for c in cands if c["login"] == login), None)
+            ratio = round(nxt["fit"] / mine["fit"], 2) if nxt and mine and mine["fit"] else None
+            stuck.append({
+                "number": n, "title": title, "url": url,
+                "why": "requested from them" if requested else "they are the best-fit reviewer",
+                "next_reviewer": nxt and nxt["login"],
+                "next_fit_vs_theirs": ratio,
+                "backup": "none" if not nxt else "weak" if ratio is not None and ratio < 0.5 else "ok",
+            })
+            evidence.append({"kind": "PR", "number": n, "title": title, "url": url, "when": "open"})
+
+        # People whose code they review more than anyone else does.
+        authors = self._q("""
+            MATCH (p:Human {login: $l})-[c:COLLAB]->(au:Human)
+            MATCH (r:Human)-[c2:COLLAB]->(au)
+            WITH au, c, max(c2.score) AS best, sum(c2.score) AS total
+            WHERE c.score = best AND total > 0 AND c.n >= 2
+            RETURN au.login, c.score / total, c.n ORDER BY c.n DESC LIMIT 8
+        """, {"l": login})
+
+        orphaned = [a for a in areas if a["status"] == "orphaned"]
+        thin = [a for a in areas if a["status"] == "thin"]
+        data = {
+            "person": login,
+            "summary": {"open_prs_stuck": len(stuck),
+                        "stuck_prs_without_a_good_backup": sum(1 for x in stuck if x["backup"] != "ok"),
+                        "areas_orphaned": len(orphaned), "areas_thin": len(thin),
+                        "authors_losing_their_main_reviewer": len(authors)},
+            "areas": areas[:10],
+            "stuck_prs": sorted(stuck, key=lambda x: ("ok", "weak", "none").index(x["backup"]), reverse=True)[:10],
+            "authors_losing_their_main_reviewer": [{"author": a, "share_of_their_reviews": round(sh, 2),
+                                                    "reviews": k} for a, sh, k in authors],
+        }
+        nodes = [pid(login)] + [aid(a["area"]) for a in areas[:10]]
+        links = [[pid(login), aid(a["area"]), "risk"] for a in areas[:10]]
+        links += [[pid(a["next_person"]), aid(a["area"]), "path"] for a in areas[:10] if a["next_person"]]
+        nodes += [pid(a["next_person"]) for a in areas[:10] if a["next_person"]]
+        return {"data": data, "evidence": evidence[:6], "highlight": {"nodes": nodes, "links": links}}
+
+    def fading_paths(self, idle_days: int = 90) -> dict:
+        """Knowledge that is fading: areas whose main expert ever has stopped walking them,
+        with whoever (if anyone) is picking the work up."""
+        now = time.time()
+        rows = self._q("""
+            MATCH (p:Human)-[w:WORN]->(a:Area) WHERE a.depth >= 1 AND a.depth <= 3 AND a.prs >= 6
+            WITH a, p, w ORDER BY w.prs DESC, w.score DESC
+            WITH a, collect({login: p.login, prs: w.prs, last: w.last, score: w.score}) AS ppl
+            WHERE ppl[0].last < $cutoff
+            RETURN a.path, a.prs, a.last, a.wear, ppl[0..6] ORDER BY ppl[0].prs DESC LIMIT 30
+        """, {"cutoff": int(now) - idle_days * DAY})
+        seen_at = dict(self._q("""
+            MATCH (p:Human)-[w:WORN]->(:Area {path: '/'}) WHERE p.login IN $l RETURN p.login, w.last
+        """, {"l": list({r[4][0]["login"] for r in rows})}))
+        out = []
+        for path, prs, last, wear, ppl in rows:
+            expert = ppl[0]
+            still_here = activity_factor(seen_at.get(expert["login"]), now) >= 0.7
+            heirs = [q for q in ppl[1:] if activity_factor(q["last"], now) >= 0.7]
+            heir = max(heirs, key=lambda q: q["score"], default=None)
+            out.append({"area": path, "prs": prs, "expert": expert["login"],
+                        "expert_share_of_all_prs": round(expert["prs"] / prs, 2),
+                        "expert_last_here": ago(expert["last"]), "area_last_touched": ago(last),
+                        "expert_still_active_elsewhere": still_here,
+                        "picked_up_by": heir and heir["login"],
+                        "heir_share_of_recent_work": heir and round(heir["score"] / wear, 2) if wear else None,
+                        "risk": ("only they know it and they have moved on to other code - ask them now"
+                         if not heir and still_here else
+                         "the expert is gone and nobody active has taken over" if not heir else
+                                "handover in progress" if heir["score"] / (wear or 1) >= 0.3 else "thinly covered")})
+        seen = {(o["area"], o["expert"]) for o in out}
+        out = [o for o in out if "/" not in o["area"] or (o["area"].rsplit("/", 1)[0], o["expert"]) not in seen]
+        # Sibling folders with the same expert and the same story read as one finding.
+        groups: dict[tuple, list] = {}
+        for o in out:
+            key = (o["area"].rsplit("/", 1)[0] if "/" in o["area"] else o["area"], o["expert"], o["risk"])
+            groups.setdefault(key, []).append(o)
+        merged = []
+        for (parent, _, _), rows_ in groups.items():
+            if len(rows_) < 2:
+                merged += rows_
+                continue
+            head = dict(max(rows_, key=lambda o: o["prs"]))
+            head["subareas"] = sorted(o["area"].rsplit("/", 1)[-1] for o in rows_)
+            head["paths"] = [o["area"] for o in rows_]
+            head["area"], head["prs"] = parent, sum(o["prs"] for o in rows_)
+            merged.append(head)
+        out = merged
+        out.sort(key=lambda o: (o["picked_up_by"] is not None, o["expert_still_active_elsewhere"],
+                                -o["expert_share_of_all_prs"] * o["prs"]))
+        out = out[:10]
+        evidence = [e for o in out[:3] for e in self._evidence_for(o["expert"], o.get("paths", [o["area"]])[0], 1)]
+        links = [[pid(o["expert"]), aid(a), "risk"] for o in out for a in o.get("paths", [o["area"]])]
+        links += [[pid(o["picked_up_by"]), aid(a), "path"] for o in out if o["picked_up_by"]
+                  for a in o.get("paths", [o["area"]])]
+        for o in out:
+            o.pop("paths", None)
+        return {"data": out, "evidence": evidence,
+                "highlight": {"nodes": list(dict.fromkeys([k[1] for k in links] + [k[0] for k in links])),
+                              "links": links}}
+
+    def onboard(self, area: str, login: str | None = None) -> dict:
+        """A newcomer's way into an area: who to ask, which PRs to read first, which areas come with it,
+        and (given their login) the shortest chain of review relationships to the right person."""
+        path = self.resolve_area(area)
+        if not path:
+            return {"data": f"no area matches '{area}'", "evidence": [], "highlight": _empty()}
+        now = time.time()
+        guides = self._q("""
+            MATCH (p:Human)-[w:WORN]->(a:Area {path: $a}) WHERE w.last > $active
+            RETURN p.login, w.reviewed, w.authored, w.score / a.wear, w.last
+            ORDER BY w.reviewed DESC, w.score DESC LIMIT 3
+        """, {"a": path, "active": int(now) - 45 * DAY})
+        reading = self._q("""
+            MATCH (x:PR)-[:IN_AREA]->(:Area {path: $a}) WHERE x.merged > $since
+            OPTIONAL MATCH (r:Human)-[rv:REVIEWED]->(x)
+            OPTIONAL MATCH (au:Person)-[:AUTHORED]->(x)
+            WITH x, au, count(rv) AS discussion
+            RETURN x.number, x.title, x.url, x.merged, au.login, discussion, x.additions + x.deletions AS size
+            ORDER BY discussion DESC LIMIT 40
+        """, {"a": path, "since": int(now) - 240 * DAY})
+        # The best first read is small and well discussed: a 10k-line PR teaches a newcomer nothing.
+        reading = sorted(reading, key=lambda r: -r[5] / (1 + (r[6] or 0) / 400))[:5]
+        nearby = self._q("""
+            MATCH (x:PR)-[:IN_AREA]->(a:Area {path: $a}), (x)-[:IN_AREA]->(b:Area)
+            WHERE b.depth = a.depth AND b <> a
+            RETURN b.path, count(x) AS c ORDER BY c DESC LIMIT 3
+        """, {"a": path})
+        data = {
+            "area": path,
+            "ask": [{"login": g, "reviews_here": rv, "authored_here": au, "share_of_recent_work": round(sh, 2),
+                     "last_active": ago(last)} for g, rv, au, sh, last in guides]
+                   or "nobody has been active here in 45 days",
+            "read_first": [{"number": n, "title": t, "url": u, "merged": ago(m), "by": au, "reviews": d,
+                            "lines_changed": sz} for n, t, u, m, au, d, sz in reading],
+            "usually_changes_with": [{"area": b, "shared_prs": c} for b, c in nearby],
+        }
+        highlight = {"nodes": [aid(path)] + [pid(g[0]) for g in guides],
+                     "links": [[pid(g[0]), aid(path), "worn"] for g in guides]}
+        if login and guides:
+            intro = self.intro_path(login.lstrip("@"), guides[0][0])
+            data["intro_chain"] = intro["data"]
+            highlight["nodes"] += intro["highlight"]["nodes"]
+            highlight["links"] += intro["highlight"]["links"]
+        evidence = [{"kind": "PR", "number": r["number"], "title": r["title"], "url": r["url"], "when": r["merged"]}
+                    for r in data["read_first"]]
+        return {"data": data, "evidence": evidence, "highlight": highlight}
+
+    # ---------- routing strategies, compared ----------
+
+    def backtest(self, last: int = 300) -> dict:
+        from desire_paths.strategies import backtest
+        return backtest(self, last)
+
+    def compare_routing(self) -> dict:
+        from desire_paths.strategies import compare_routing
+        return compare_routing(self)
+
     def cypher(self, query: str) -> dict:
         """Read-only Cypher escape hatch."""
         if re.search(r"\b(CREATE|MERGE|SET|DELETE|REMOVE|DROP|CALL\s+db\.idx\.fulltext\.(create|drop))\b", query, re.I):
@@ -522,11 +779,27 @@ class GraphTools:
             query += " LIMIT 25"
         try:
             res = self.g.ro_query(query)
+            self.trace.append({"cypher": query, "params": {}, "rows": len(res.result_set), "ms": None})
         except Exception as e:
             return {"data": f"query error: {e}", "evidence": [], "highlight": _empty()}
         rows = [[_plain(v) for v in row] for row in res.result_set[:25]]
         return {"data": {"columns": [h[1] if isinstance(h, list) else h for h in res.header], "rows": rows},
                 "evidence": [], "highlight": _empty()}
+
+
+def _tidy(query: str) -> str:
+    lines = [line.rstrip() for line in query.strip("\n").splitlines()]
+    pad = min((len(line) - len(line.lstrip()) for line in lines if line.strip()), default=0)
+    return "\n".join(line[pad:] for line in lines)
+
+
+def _short(params: dict) -> dict:
+    out = {}
+    for k, v in params.items():
+        if isinstance(v, list) and len(v) > 6:
+            v = v[:6] + [f"... {len(v) - 6} more"]
+        out[k] = v
+    return out
 
 
 def _plain(v):

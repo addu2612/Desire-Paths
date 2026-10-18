@@ -115,6 +115,39 @@ def pave(repo: str) -> dict:
     return _out(_tools(repo).pave())
 
 
+@mcp.tool(annotations=READ)
+def if_gone(repo: str, login: str) -> dict:
+    """What breaks if a person leaves or goes on vacation: stuck open PRs and their backup reviewers,
+    areas that are orphaned or thin, who covers each area next, and whose code loses its main reviewer."""
+    return _out(_tools(repo).if_gone(login))
+
+
+@mcp.tool(annotations=READ)
+def compare_routing(repo: str) -> dict:
+    """Route today's open queue three ways (CODEOWNERS, best graph fit, max-flow balanced) and compare
+    coverage, fit, and the most reviews on one person."""
+    return _out(_tools(repo).compare_routing())
+
+
+@mcp.tool(annotations=READ)
+def backtest(repo: str) -> dict:
+    """How often each routing strategy's picks include a person who really reviewed, replayed on merged PRs
+    using only activity from before each PR."""
+    return _out(_tools(repo).backtest())
+
+
+@mcp.tool(annotations=READ)
+def fading_paths(repo: str) -> dict:
+    """Areas whose main expert stopped working there, and whether anyone active has picked the work up."""
+    return _out(_tools(repo).fading_paths())
+
+
+@mcp.tool(annotations=READ)
+def onboard(repo: str, area: str, login: str | None = None) -> dict:
+    """A newcomer's way into an area: who to ask, PRs to read first, related areas, and an intro chain."""
+    return _out(_tools(repo).onboard(area, login))
+
+
 @mcp.tool(annotations=ToolAnnotations(destructiveHint=False, idempotentHint=True, openWorldHint=True))
 def request_reviewers(repo: str, number: int, reviewers: list[str] | None = None, confirm: bool = False) -> dict:
     """Request reviewers on GitHub for an open PR. Without confirm=true this only returns the plan.

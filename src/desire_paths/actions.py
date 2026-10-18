@@ -90,11 +90,35 @@ def request_reviewers(g, repo: str, number: int, reviewers: list[str], decision:
         return {"status": "done", "url": url, **plan}
 
 
-def open_codeowners_pr(g, repo: str, codeowners: str, changes: list[dict], confirm: bool = False) -> dict:
+CODEOWNERS_PATHS = (".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS")  # GitHub's lookup order
+
+
+def compose_codeowners(paved: str, existing: str | None) -> str:
+    """Paved lines first, then the existing file untouched. CODEOWNERS is last-match-wins, so every
+    existing rule (often a security control on CI and build files) keeps its force."""
+    out = ["# Paved by Desire Paths from who actually authored and reviewed recent work.",
+           "# These lines cover code that no rule below owns today.", "", paved.strip(), ""]
+    if existing and existing.strip():
+        out += ["# ---- Existing rules, kept unchanged. They come last, so they still win where they overlap. ----",
+                existing.rstrip(), ""]
+    return "\n".join(out)
+
+
+def _existing_codeowners(client: httpx.Client, repo: str, ref: str) -> tuple[str, str | None, str | None]:
+    """(path, text, sha) of the CODEOWNERS file GitHub would use, or the default location if there is none."""
+    for path in CODEOWNERS_PATHS:
+        r = client.get(f"{API}/repos/{repo}/contents/{path}", params={"ref": ref})
+        if r.status_code == 200:
+            body = r.json()
+            return path, base64.b64decode(body["content"]).decode(), body["sha"]
+    return CODEOWNERS_PATHS[0], None, None
+
+
+def open_codeowners_pr(g, repo: str, paved: str, changes: list[dict], confirm: bool = False) -> dict:
     with _client() as client:
         target = (repo if can_push(client, repo) else own_fork(client, repo)) if writes_enabled() else None
         plan = {"kind": "open_codeowners_pr", "repo": repo, "target": target, "writes_enabled": writes_enabled(),
-                "files": [".github/CODEOWNERS"], "changes": len(changes)}
+                "changes": len(changes)}
         if not confirm:
             return {"status": "planned", **plan}
         if not target:
@@ -106,18 +130,25 @@ def open_codeowners_pr(g, repo: str, codeowners: str, changes: list[dict], confi
         info = client.get(f"{API}/repos/{target}").raise_for_status().json()
         base = info["default_branch"]
         sha = client.get(f"{API}/repos/{target}/git/ref/heads/{base}").raise_for_status().json()["object"]["sha"]
+        # Edit the file GitHub actually reads: adding .github/CODEOWNERS next to a root CODEOWNERS
+        # would silently switch the root one off.
+        path, existing, file_sha = _existing_codeowners(client, target, base)
         branch = f"{BRANCH_PREFIX}/codeowners-{int(time.time())}"
-        client.post(f"{API}/repos/{target}/git/refs", json={"ref": f"refs/heads/{branch}", "sha": sha}).raise_for_status()
-        existing = client.get(f"{API}/repos/{target}/contents/.github/CODEOWNERS", params={"ref": branch})
+        client.post(f"{API}/repos/{target}/git/refs",
+                    json={"ref": f"refs/heads/{branch}", "sha": sha}).raise_for_status()
         body = {"message": "Pave the desire paths: CODEOWNERS from actual activity", "branch": branch,
-                "content": base64.b64encode(codeowners.encode()).decode()}
-        if existing.status_code == 200:
-            body["sha"] = existing.json()["sha"]
-        client.put(f"{API}/repos/{target}/contents/.github/CODEOWNERS", json=body).raise_for_status()
-        table = "\n".join(f"| `{c['area']}/` | {', '.join('@' + x for x in c['today']) if isinstance(c['today'], list) else c['today']} "
-                          f"| {', '.join('@' + x for x in c['suggested'])} |" for c in changes[:25])
+                "content": base64.b64encode(compose_codeowners(paved, existing).encode()).decode()}
+        if file_sha:
+            body["sha"] = file_sha
+        client.put(f"{API}/repos/{target}/contents/{path}", json=body).raise_for_status()
+        def people(v) -> str:
+            return ", ".join("@" + x for x in v) if isinstance(v, list) else str(v)
+
+        table = "\n".join(f"| `{c['area']}/` | {people(c['today'])} | {people(c['suggested'])} |" for c in changes[:25])
         pr_body = ("Drafted by **Desire Paths** from who actually authored and reviewed recent work "
                    f"in `{repo}`, using a FalkorDB graph of PRs, reviews and files.\n\n"
+                   f"Paving only adds: the existing `{path}` rules are kept unchanged and placed last, so they "
+                   "still win wherever they overlap. New lines cover code that no rule owns today.\n\n"
                    "| Area | Owner today | Suggested |\n|---|---|---|\n" + table)
         pr = client.post(f"{API}/repos/{target}/pulls", json={
             "title": "Pave the desire paths: CODEOWNERS from actual activity",

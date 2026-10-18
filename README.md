@@ -2,6 +2,19 @@
 
 **An agent that knows how a software project really works, decides who should review what, and acts on it.**
 
+On FalkorDB's own repository, it found:
+
+- Only **14%** of files have an official owner.
+- **17 of the 40** most recently updated open PRs are misrouted, and 16 of them have nobody asked to review.
+- **AI reviewers wrote more reviews than all humans combined** (about 1,600).
+- **56 of 64** suggested reviews land on two people, even with load balancing.
+- If one of those two goes on vacation, **27 open PRs lose their reviewer and 21 have no good backup.**
+
+Replayed on 300 merged PRs, the agent's top two picks include a person who really reviewed **77%** of the time on FalkorDB (CODEOWNERS: 0%, because it names only a team).
+On Apache Airflow it reaches **44%**, against **26%** for CODEOWNERS.
+
+A real action it took: [a paved CODEOWNERS pull request](https://github.com/addu2612/FalkorDB/pull/1) on a fork of FalkorDB, opened from the app after one click of approval.
+
 In urban planning, a *desire path* is the dirt trail people wear across the grass when the paved path goes the wrong way.
 Good planners don't put up fences.
 They pave the trail.
@@ -10,7 +23,7 @@ Every repository has a paved path: `CODEOWNERS`, the team page, the org chart.
 And every repository has desire paths: who actually writes, reviews and fixes each part of the code.
 Desire Paths loads both into one FalkorDB graph, shows where they disagree, and gives an agent the graph tools to make routing decisions and take action on them.
 
-Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs x FalkorDB), Track 01: *Agents That Act on Connected Data*.
+Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs x FalkorDB), entered in Track 01: *Agents That Act on Connected Data*.
 
 ![Apache Airflow: dashed violet is CODEOWNERS, the grooves are where people actually walk](docs/airflow-map.png)
 
@@ -18,14 +31,41 @@ Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs x FalkorDB), Track 
 
 On **FalkorDB/FalkorDB** (600 merged PRs, Mar 2025 to Oct 2026):
 
-- Only **14%** of files have an official owner. `CODEOWNERS` covers `build/` and `.github/`; the query engine, runtime and tests have no owner on paper.
-- **17 of the 40** most recently updated open PRs are misrouted, 16 of them with nobody asked to review. One has waited 53 days.
-- Even with load balancing, 56 of 64 suggested reviews land on two people. The review capacity of the project is two humans, and the graph can show it.
-- AI reviewers (CodeRabbit, Copilot and others) wrote about 1,600 reviews, more than all humans combined. They are labelled and kept out of the people analysis.
+- Only **14%** of files have an official owner.
+  `CODEOWNERS` covers `build/` and `.github/`; the query engine, runtime and tests have no owner on paper.
+- **17 of the 40** most recently updated open PRs are misrouted, 16 of them with nobody asked to review.
+  One has waited 53 days.
+- AI reviewers (CodeRabbit, Copilot and others) wrote about 1,600 reviews, more than all humans combined.
+  They are labelled and kept out of the people analysis.
+- Even with load balancing, 56 of 64 suggested reviews land on two people.
+  The max-flow plan proves the floor: in any assignment that covers the 38 routable open PRs, someone carries at least 16, because almost nobody else has walked that code.
+- **If @DvirDukhan is away, 27 open PRs lose their reviewer, and 21 of them have no good backup.**
+  @AviAvni loses the person behind 95% of the recent reviews on their code.
+- **Knowledge is fading in `src/arithmetic`:** one person wrote all 101 PRs across its 12 subfolders and has not touched it in 4 months.
 
 On **apache/airflow**:
 
 - `CODEOWNERS` is dense (31% of files), yet **112 review requests** in the open queue go to people with no recent work in the code those PRs touch.
+- On today's queue, CODEOWNERS names someone with recent work in the touched code for 15 of 40 PRs; the graph does for all 40.
+
+## Does the routing work? A backtest
+
+For each merged PR, the backtest rebuilds every person's desire paths from activity *before* the PR was opened, hides who reviewed it, and checks whether a strategy's top two picks include someone who actually did.
+Nothing from the future leaks in.
+
+| 300 merged PRs | FalkorDB | Airflow |
+|---|---|---|
+| CODEOWNERS | 0% (names only a team) | 26% |
+| The two busiest reviewers | 73% | 24% |
+| **Desire paths (graph)** | **77%** | **44%** |
+| Desire paths + load balancing | 74%, spread over 11 people instead of 6 | 37%, over 74 people instead of 33 |
+
+The "busiest reviewers" baseline is strong on FalkorDB because two people do 65% of the reviews.
+The graph still beats it, and beats it by a wide margin on a large project like Airflow.
+Load balancing gives up a little accuracy to spread the work, which is the point.
+Ask *"How well does your routing work on past PRs?"* or press **Compare routing** to run it live.
+
+![CODEOWNERS vs. graph vs. max-flow balanced, on the open queue and on replayed history](docs/compare-routing.png)
 
 ## What the agent does
 
@@ -44,11 +84,34 @@ Every decision comes with the chain of evidence, the PRs behind it, and who was 
 `triage` sweeps the open review queue and flags PRs that are unrouted, waiting on an absent reviewer, or assigned to someone with no history in that code.
 Suggestions are assigned greedily with simulated load, so the queue spreads across the team.
 
+`compare_routing` routes the whole queue three ways and puts them side by side: CODEOWNERS, the best graph fit, and a balanced plan.
+The balanced plan is a max-flow problem solved by FalkorDB's `algo.maxFlow`:
+
+```
+(:Src) -[cap 1]-> (:PR) -[cap 1]-> (:Reviewer qualified for it) -[cap K]-> (:Snk)
+```
+
+The agent searches for the smallest per-person cap `K` that still covers every PR that can be covered, so no one carries more than they must.
+The flow network is projected into a scratch graph and dropped after the solve (about 30 ms).
+
+**Plan for absence.**
+`if_gone` removes a person from the graph and walks it again.
+It returns the open PRs that get stuck and whether each one has a good backup, the areas that are orphaned or thin, who covers each area next, and whose code loses its main reviewer.
+On the map, their pebble becomes an empty socket and their grooves turn red.
+![If @DvirDukhan is away: their grooves turn red, and the stuck PRs show who would review next](docs/if-gone.png)
+
+`fading_paths` finds the same risk in slow motion: areas whose main expert has stopped walking them, and whether anyone has picked the work up.
+
+**Help newcomers in.**
+`onboard` gives the way into an area: who reviews there and is active, the small, well-discussed PRs to read first, the areas that usually change with it, and the shortest chain of review relationships to the right person.
+
 **Act.**
 The agent proposes; a person approves with one click; the server checks GitHub write permission and executes:
 
 - request reviewers on the PR, or
 - open a pull request with a `CODEOWNERS` file "paved" from the desire paths (on your fork if you can't push upstream).
+  Paving only adds: it edits the `CODEOWNERS` file GitHub actually reads, keeps every existing rule unchanged and last (so security rules on CI and build files keep their force), and adds lines only for code nobody owns today.
+  [Example on a fork of FalkorDB](https://github.com/addu2612/FalkorDB/pull/1).
 
 Without write access it records a dry run and changes nothing.
 Every attempt is stored in the graph as an `(:Action)` node linked to the PR, so the agent knows what it already did.
@@ -58,6 +121,10 @@ Every attempt is stored in the graph as an `(:Action)` node linked to the PR, so
 **Explain and answer.**
 Ask in plain language: *Who actually knows the execution plan? What breaks if @x goes on vacation? Where does CODEOWNERS disagree with reality?*
 The agent picks tools, walks the graph, cites PRs, and the map lights up the exact path it reasoned along.
+
+**Show the proof.**
+Every answer and card has a *Graph proof* drawer with the exact Cypher queries the tools ran on FalkorDB, their parameters, row counts and timings.
+Nothing the agent says is a black box: you can paste any of them into FalkorDB Browser and get the same rows.
 
 ## The signature detail: paths worn into clay
 
@@ -74,6 +141,8 @@ Each question is a traversal, not a lookup:
 | Question | Graph work |
 |---|---|
 | Who should review PR #3120? | PR -> files -> areas -> people -> their open review load |
+| What breaks if @x is away? | the same walk for every open PR, with @x removed |
+| How do we split the queue fairly? | `algo.maxFlow` on a PR -> reviewer flow network |
 | Who actually knows `src/execution_plan`? | recency-decayed `WORN` edges vs. `OFFICIAL` edges |
 | Who are the hidden bottlenecks? | `algo.betweenness` on the reviewer -> author graph |
 | Whose review matters most? | `algo.pageRank` on `COLLAB` |
@@ -120,7 +189,7 @@ Claude Desktop / Cursor config:
 }
 ```
 
-Tools: `list_repos`, `who_knows`, `who_knows_topic`, `route_pr`, `triage`, `blueprint_drift`, `bus_factor`, `hidden_bottlenecks`, `person`, `intro_path`, `pave`, `request_reviewers` (plan by default, `confirm=true` to execute).
+Tools: `list_repos`, `who_knows`, `who_knows_topic`, `route_pr`, `triage`, `compare_routing`, `backtest`, `if_gone`, `fading_paths`, `onboard`, `blueprint_drift`, `bus_factor`, `hidden_bottlenecks`, `person`, `intro_path`, `pave`, `request_reviewers` (plan by default, `confirm=true` to execute).
 
 ## Run it locally
 
@@ -166,7 +235,8 @@ Any OpenAI-compatible endpoint works; the agent uses native tool calls and falls
 src/desire_paths/
   github.py      GitHub GraphQL: merged PRs, reviews, files, issues, open PRs, CODEOWNERS
   graph.py       builds both layers in FalkorDB and derives desire paths with Cypher
-  tools.py       graph tools: routing, triage, drift, centrality, communities, paths
+  tools.py       graph tools: routing, triage, what-ifs, drift, centrality, communities, paths
+  strategies.py  backtest and max-flow balancing, CODEOWNERS vs. graph vs. balanced
   actions.py     permission-checked GitHub writes, recorded as (:Action) nodes
   agent.py       tool-calling agent loop over any OpenAI-compatible model
   mcp_server.py  the same tools over MCP

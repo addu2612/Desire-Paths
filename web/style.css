@@ -250,6 +250,39 @@ select.field { appearance: none; padding-right: 40px; font-weight: 600; cursor: 
 .qrow.sev1 .prob, .qrow.sev2 .prob { color: #9A5B13; }
 .qrow .sug { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
+/* ---------- what-ifs, strategies, proof ---------- */
+.card-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.arow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 6px 0; font-size: 12.5px; border-bottom: 1px solid rgb(163 177 198 / 0.25); }
+.arow:last-child { border-bottom: 0; }
+.arow.col { display: grid; gap: 3px; }
+.arow.col > div:first-child { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.chip { font: 700 10px var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; box-shadow: var(--inset-sm); }
+.chip.orphaned { color: var(--risk); }
+.chip.thin { color: #9A5B13; }
+.chip.covered { color: #23787A; }
+.cmp { width: 100%; border-collapse: separate; border-spacing: 0 4px; margin: 12px 0 4px; font-size: 12.5px; }
+.cmp th, .cmp td { text-align: left; padding: 6px 8px; font-weight: 500; }
+.cmp thead th { font: 700 10.5px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cmp tbody th { color: var(--muted); font-weight: 500; width: 34%; line-height: 1.3; }
+.cmp thead th:not(:first-child), .cmp td { width: 22%; }
+.cmp td { font-family: var(--display); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.cmp td .muted { font: 500 11px var(--body); }
+.cmp td.win { box-shadow: var(--inset-sm); border-radius: 10px; color: #23787A; }
+.cmp tr.sec td { font: 700 10.5px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--fg); padding-top: 12px; }
+.ruled code { background: var(--clay); box-shadow: var(--inset-sm); padding: 1px 6px; border-radius: 6px; font-size: 11.5px; }
+.proof { margin-top: 10px; font-size: 12px; }
+.proof summary { cursor: pointer; color: var(--muted); font: 600 12px var(--display); padding: 8px 12px; border-radius: var(--r-inner); box-shadow: var(--raised-sm); display: inline-block; list-style: none; }
+.proof summary::-webkit-details-marker { display: none; }
+.proof summary::before { content: "▸ "; color: var(--accent); }
+.proof[open] summary::before { content: "▾ "; }
+.proof[open] summary { box-shadow: var(--inset-sm); }
+.proof .pq { margin-top: 10px; }
+.proof .pm { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.proof pre { margin: 0; padding: 12px 14px; border-radius: var(--r-inner); box-shadow: var(--inset); font: 11px/1.6 var(--mono); overflow-x: auto; white-space: pre; color: var(--fg); }
+.proof .pp { font: 10.5px var(--mono); color: var(--muted); margin-top: 4px; word-break: break-all; }
+.lg-risk { height: 4px; border-radius: 2px; background: var(--risk); }
+
 #suggest { padding: 4px 26px 14px; display: flex; flex-wrap: wrap; gap: 10px; }
 #suggest.compact { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-top: 12px; }
 #suggest.compact button { white-space: nowrap; flex: none; }

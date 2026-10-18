@@ -75,6 +75,9 @@ function linkHl(l) {
   const a = idOf(l.source), b = idOf(l.target);
   return S.hl.links.has(linkKey(a, b)) || S.hl.links.has(linkKey(b, a));
 }
+function linkRisk(l) {
+  return !!(S.hl && S.hl.risk && S.hl.risk.has(linkKey(idOf(l.source), idOf(l.target))));
+}
 
 function strokeLine(ctx, a, b, dx = 0, dy = 0) {
   ctx.beginPath();
@@ -126,14 +129,17 @@ function drawLink(l, ctx, scale) {
     const depth = Math.min(1, rel * (0.4 + 0.6 * fresh));
     const width = (2 + rel * 8) / scale;
     const paved = S.paved.has(linkKey(idOf(a), idOf(b)));
-    drawGroove(ctx, a, b, width, hl ? 1 : depth, scale, paved ? C.accent : null);
-    if (hl && !paved) {
+    const risk = linkRisk(l);
+    drawGroove(ctx, a, b, width, hl ? 1 : depth, scale, risk ? C.risk : paved ? C.accent : null);
+    if (hl && !paved && !risk) {
       ctx.strokeStyle = C.teal;
       ctx.lineWidth = Math.max(1.4 / scale, width * 0.38);
       strokeLine(ctx, a, b);
     }
   } else if (l.kind === "path") {
     drawGroove(ctx, a, b, 4 / scale, 1, scale, C.teal);
+  } else if (l.kind === "risk") {
+    drawGroove(ctx, a, b, 4 / scale, 1, scale, C.risk);
   }
   ctx.restore();
 }
@@ -219,7 +225,18 @@ function drawNode(n, ctx, scale) {
     const s = n._s || 0;
     const ghost = s < 0.01;
     const r = (ghost ? 4 : 3.4 + Math.sqrt(s) * 8) * shrink;
-    if (ghost) {
+    if (S.gone === n.id) {
+      // the person who is away: an empty socket where their pebble used to sit
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 1.5 * px, 0, Math.PI * 2);
+      ctx.fillStyle = C.groove;
+      ctx.fill();
+      ctx.setLineDash([3 * px, 2.5 * px]);
+      ctx.strokeStyle = C.risk;
+      ctx.lineWidth = 2 * px;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (ghost) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.setLineDash([2 * px, 2 * px]);
@@ -240,8 +257,8 @@ function drawNode(n, ctx, scale) {
       }
     }
     if (focus || s > 0.35 || scale > 2.2 || S.hoverNode === n) {
-      label(ctx, "@" + n.label, n.x, n.y + r + 11 * px, 11.5 * px, focus ? 700 : 600,
-        ghost ? C.muted : C.fg, '"Plus Jakarta Sans"');
+      label(ctx, "@" + n.label + (S.gone === n.id ? " (away)" : ""), n.x, n.y + r + 11 * px, 11.5 * px,
+        focus ? 700 : 600, S.gone === n.id ? C.risk : ghost ? C.muted : C.fg, '"Plus Jakarta Sans"');
     }
   }
   ctx.restore();
@@ -255,6 +272,7 @@ function nodeArea(n, color, ctx) {
 }
 
 function linkVisible(l) {
+  if (linkRisk(l)) return true;
   if (l.kind === "official") return S.layers.blueprint;
   if (l.kind === "collab") return S.layers.collab || linkHl(l);
   if (l.kind === "worn") return S.layers.worn && l._s > 0.002;
@@ -341,14 +359,25 @@ function onHover(n) {
 async function onClick(n) {
   if (n.kind === "area") {
     const r = await tool("who_knows", n.label);
+    clearHighlight();
     applyHighlight(r.highlight, true);
-    addCard(areaCard(r));
+    addCard(areaCard(r) + proofHtml(r.proof));
   } else if (n.kind === "person") {
     const r = await tool("person", n.label);
+    clearHighlight();
     applyHighlight(r.highlight, true);
-    addCard(personCard(r));
+    addCard(personCard(r) + proofHtml(r.proof));
   }
 }
+
+// Buttons inside cards (they are re-rendered as HTML, so delegate from the thread).
+document.getElementById("thread").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-gone], button[data-onboard], button[data-n]");
+  if (!b || S.busy) return;
+  if (b.dataset.gone) goneDirect(b.dataset.gone);
+  else if (b.dataset.onboard) onboardDirect(b.dataset.onboard);
+  else if (b.dataset.n) routeDirect(+b.dataset.n);
+});
 
 async function tool(name, arg, arg2) {
   const [o, n] = S.repo.split("/");
@@ -435,7 +464,7 @@ function resolveNode(id) {
 
 function applyHighlight(h, replace = false) {
   if (!h) return;
-  if (replace || !S.hl) S.hl = { nodes: new Set(), links: new Set() };
+  if (replace || !S.hl) S.hl = { nodes: new Set(), links: new Set(), risk: new Set() };
   for (const id of h.nodes || []) { const r = resolveNode(id); if (r) S.hl.nodes.add(r); }
   const existing = new Set(S.data.links.map((l) => linkKey(idOf(l.source), idOf(l.target))));
   const extra = [];
@@ -444,7 +473,11 @@ function applyHighlight(h, replace = false) {
     if (!a || !b) continue;
     S.hl.nodes.add(a); S.hl.nodes.add(b);
     S.hl.links.add(linkKey(a, b));
-    if (!existing.has(linkKey(a, b)) && !existing.has(linkKey(b, a)) && kind === "path") extra.push({ source: a, target: b, kind: "path" });
+    if (kind === "risk") S.hl.risk.add(linkKey(a, b));
+    if (!existing.has(linkKey(a, b)) && !existing.has(linkKey(b, a)) && (kind === "path" || kind === "risk")) {
+      extra.push({ source: a, target: b, kind });
+      existing.add(linkKey(a, b));
+    }
   }
   if (extra.length) {
     const d = S.fg.graphData();
@@ -462,8 +495,9 @@ function fitTo(filter) {
 
 function clearHighlight() {
   S.hl = null;
+  S.gone = null;
   const d = S.fg.graphData();
-  S.fg.graphData({ nodes: d.nodes, links: d.links.filter((l) => l.kind !== "path") });
+  S.fg.graphData({ nodes: d.nodes, links: d.links.filter((l) => l.kind !== "path" && l.kind !== "risk") });
   refresh();
 }
 
@@ -534,6 +568,8 @@ function renderSuggestions() {
     "Where does CODEOWNERS disagree with reality?",
     people[0] && `What breaks if @${people[0].label} goes on vacation?`,
     "Which open PRs are stuck with the wrong reviewer?",
+    "How well does your routing work on past PRs?",
+    "What knowledge are we losing?",
     "Who are the hidden bottlenecks in code review?",
     "Draft a CODEOWNERS from how people really work",
   ].filter(Boolean);
@@ -573,7 +609,8 @@ function areaCard(r) {
   return `<div class="card"><h3>${esc(d.area)}/</h3>
     <div class="caps">Officially</div>${off}
     <div class="caps">Actually · share of recent work</div>${ppl}
-    ${evidenceHtml(r.evidence)}</div>`;
+    ${evidenceHtml(r.evidence)}
+    <div class="card-actions"><button class="btn btn-sm" data-onboard="${esc(d.area)}">How do I start contributing here?</button></div></div>`;
 }
 
 function personCard(r) {
@@ -584,7 +621,8 @@ function personCard(r) {
   return `<div class="card"><h3>@${esc(d.login)}</h3>
     <div class="caps">Actually works on</div>${works}
     <div class="caps">Reviews with</div><div>${rev || "-"}</div>
-    <div class="caps">Officially owns</div><div class="plan">${owns}</div></div>`;
+    <div class="caps">Officially owns</div><div class="plan">${owns}</div>
+    <div class="card-actions"><button class="btn btn-sm" data-gone="${esc(d.login)}">What breaks if @${esc(d.login)} is away?</button></div></div>`;
 }
 
 /* ---------- decisions & actions ---------- */
@@ -642,7 +680,6 @@ function queueCard(d) {
         <div class="prob">${esc(q.problems[0])}</div>
         <div class="sug">${q.suggested.length ? "Suggest " + q.suggested.map((x) => "@" + esc(x)).join(", ") : ""}</div></div>
       <button class="btn btn-sm" data-n="${q.number}">Route</button></div>`).join("");
-  setTimeout(() => document.querySelectorAll(".qrow button[data-n]").forEach((b) => (b.onclick = () => routeDirect(+b.dataset.n))), 0);
   const kinds = { unrouted: "nobody asked", "absent-reviewer": "absent reviewer", "wrong-reviewer": "wrong reviewer", waiting: "waiting 14d+" };
   return `<div class="decision"><div class="pr-title">Review queue triage</div>
     <div class="stats3"><div><b>${d.open_prs_checked}</b>open PRs checked</div><div><b class="risk">${d.flagged}</b>misrouted</div>
@@ -653,15 +690,141 @@ function queueCard(d) {
 async function routeDirect(n) {
   addCard(`<div class="msg-user">Route PR #${n}</div>`);
   const r = await tool("route_pr", String(n));
+  clearHighlight();
   applyHighlight(r.highlight, true);
-  addCard(decisionCard(r.data) + evidenceHtml(r.evidence));
+  addCard(decisionCard(r.data) + evidenceHtml(r.evidence) + proofHtml(r.proof));
 }
 
 async function triageDirect() {
   addCard(`<div class="msg-user">Triage the review queue</div>`);
   const r = await tool("triage");
+  clearHighlight();
   applyHighlight(r.highlight, true);
-  addCard(queueCard(r.data));
+  addCard(queueCard(r.data) + proofHtml(r.proof));
+}
+
+async function goneDirect(login) {
+  addCard(`<div class="msg-user">What breaks if @${esc(login)} is away?</div>`);
+  const r = await tool("if_gone", login);
+  showGone(r);
+  addCard(goneCard(r.data) + evidenceHtml(r.evidence) + proofHtml(r.proof));
+}
+
+function showGone(r) {
+  clearHighlight();
+  if (r.data && r.data.person) S.gone = "p:" + r.data.person;
+  applyHighlight(r.highlight, true);
+}
+
+async function onboardDirect(area) {
+  addCard(`<div class="msg-user">How do I start contributing to ${esc(area)}/?</div>`);
+  const r = await tool("onboard", area);
+  clearHighlight();
+  applyHighlight(r.highlight, true);
+  addCard(onboardCard(r.data) + proofHtml(r.proof));
+}
+
+async function compareDirect() {
+  addCard(`<div class="msg-user">Compare routing strategies</div>`);
+  const [cmp, bt] = await Promise.all([tool("compare_routing"), tool("backtest")]);
+  clearHighlight();
+  applyHighlight(cmp.highlight, true);
+  addCard(compareCard(cmp.data, bt.data) + evidenceHtml(bt.evidence) + proofHtml([...(cmp.proof || []), ...(bt.proof || [])]));
+}
+
+/* ---------- what-ifs, strategies, onboarding ---------- */
+const at = (x) => (x ? "@" + esc(x) : '<span class="muted">nobody</span>');
+const pct = (x) => Math.round((x || 0) * 100) + "%";
+
+function goneCard(d) {
+  if (typeof d === "string") return `<div class="card muted">${esc(d)}</div>`;
+  const s = d.summary;
+  const chip = (st) => `<span class="chip ${st}">${st}</span>`;
+  const areas = d.areas.map((a) => `<div class="arow">
+      <span class="mono">${esc(a.area)}/</span>${chip(a.status)}
+      <span class="muted">they do ${pct(a.their_share)} · next: ${at(a.next_person)}${a.next_share ? " (" + pct(a.next_share) + ")" : ""}</span></div>`).join("");
+  const backup = { none: "no backup", weak: "weak backup", ok: "backup ok" };
+  const prs = d.stuck_prs.map((p) => `<div class="qrow ${p.backup === "ok" ? "sev1" : "sev3"}">
+      <div class="t"><div class="title" title="${esc(p.title)}"><a href="${esc(p.url)}" target="_blank" rel="noopener">#${p.number}</a>${esc(p.title)}</div>
+        <div class="prob">${esc(p.why)} · ${backup[p.backup]}</div>
+        <div class="sug">Next: ${at(p.next_reviewer)}${p.next_fit_vs_theirs != null ? ` · ${pct(p.next_fit_vs_theirs)} of their fit` : ""}</div></div>
+      <button class="btn btn-sm" data-n="${p.number}">Route</button></div>`).join("");
+  const authors = d.authors_losing_their_main_reviewer.map((a) => `@${esc(a.author)} (${pct(a.share_of_their_reviews)} of their reviews)`).join(", ");
+  return `<div class="decision"><div class="pr-title">If @${esc(d.person)} is away</div>
+    <div class="pr-meta">Removed from the graph, then every path re-walked without them.</div>
+    <div class="stats3"><div><b class="risk">${s.open_prs_stuck}</b>open PRs lose their reviewer</div>
+      <div><b class="risk">${s.stuck_prs_without_a_good_backup}</b>with no good backup</div>
+      <div><b>${s.areas_orphaned + s.areas_thin}</b>areas orphaned or thin</div></div>
+    ${areas ? `<div class="caps">Where they carry the work</div>${areas}` : ""}
+    ${authors ? `<div class="caps">Loses their main reviewer</div><div class="muted">${authors}</div>` : ""}
+    ${prs ? `<div class="caps">Stuck PRs</div><div class="queue">${prs}</div>` : ""}</div>`;
+}
+
+function compareCard(c, b) {
+  const by = (rows, key) => rows.find((r) => r.key === key) || {};
+  const q = { codeowners: by(c.strategies, "codeowners"), graph: by(c.strategies, "graph"), balanced: by(c.strategies, "balanced") };
+  const h = b ? { codeowners: by(b.strategies, "codeowners"), graph: by(b.strategies, "graph"), balanced: by(b.strategies, "balanced") } : null;
+  const cols = ["codeowners", "graph", "balanced"];
+  const row = (label, f, best) => `<tr><th>${label}</th>${cols.map((k) => `<td class="${k === best ? "win" : ""}">${f(k)}</td>`).join("")}</tr>`;
+  const n = c.open_prs;
+  const busiest = (k) => q[k].most_on_one_person ? `${q[k].most_on_one_person}` : "-";
+  const mf = c.max_flow;
+  return `<div class="decision"><div class="pr-title">Three ways to route the queue</div>
+    <div class="pr-meta">${n} open PRs today${b ? ` · ${b.prs_tested} merged PRs replayed` : ""}</div>
+    <table class="cmp">
+      <thead><tr><th></th><th>CODE&shy;OWNERS</th><th>Graph</th><th>Balanced</th></tr></thead>
+      <tbody>
+        <tr class="sec"><td colspan="4">Open queue now</td></tr>
+        ${row("Named reviewer", (k) => `${q[k].prs_with_an_accountable_reviewer}/${n}`, "graph")}
+        ${row("Knows the code", (k) => `${q[k].reviewer_has_recent_work_there}/${n}`, "graph")}
+        ${row("Most on one person", busiest, "balanced")}
+        ${row("People sharing it", (k) => q[k].people_used, "balanced")}
+        ${h ? `<tr class="sec"><td colspan="4">Replay: picked a real reviewer?</td></tr>
+        ${row("Top pick", (k) => pct(h[k].hit_at_1), null)}
+        ${row("Either of top 2", (k) => pct(h[k].hit_at_2), "graph")}` : ""}
+      </tbody>
+    </table>
+    ${h ? `<div class="ruled">Baseline "the two busiest reviewers" gets ${pct(by(b.strategies, "busiest").hit_at_2)} on the same replay. Only activity from before each PR is used.</div>` : ""}
+    <div class="ruled">Balanced = <code>algo.maxFlow</code> on source → PR → qualified reviewer → sink. The smallest per-person cap that still covers every PR is <b>${mf.per_person_cap}</b>, solved in ${mf.solve_ms} ms.
+      Load: ${Object.entries(c.balanced_load).map(([k, v]) => `@${esc(k)} ${v}`).join(", ")}.</div></div>`;
+}
+
+function backtestCard(b) {
+  const rows = b.strategies.map((r) => `<tr><th>${esc(r.strategy)}</th><td>${pct(r.hit_at_1)}</td><td class="${r.key === "graph" ? "win" : ""}">${pct(r.hit_at_2)}</td><td>${r.people_used}</td></tr>`).join("");
+  return `<div class="decision"><div class="pr-title">Backtest: ${b.prs_tested} merged PRs</div>
+    <div class="pr-meta">${esc(b.method)}</div>
+    <table class="cmp"><thead><tr><th></th><th>Top pick</th><th>Top 2</th><th>People</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function fadingCard(rows) {
+  if (!Array.isArray(rows) || !rows.length) return `<div class="card muted">No fading knowledge found.</div>`;
+  return `<div class="decision"><div class="pr-title">Knowledge that is fading</div>
+    <div class="pr-meta">Areas whose main expert has not worked there in 3+ months.</div>
+    ${rows.map((o) => `<div class="arow col">
+      <div><span class="mono">${esc(o.area)}/${o.subareas ? `{${o.subareas.slice(0, 4).map(esc).join(", ")}${o.subareas.length > 4 ? ", +" + (o.subareas.length - 4) : ""}}` : ""}</span>
+        <span class="chip ${o.picked_up_by ? "thin" : "orphaned"}">${o.picked_up_by ? "handover" : "at risk"}</span></div>
+      <div class="muted">@${esc(o.expert)} did ${pct(o.expert_share_of_all_prs)} of ${o.prs} PRs, last here ${esc(o.expert_last_here)}. ${o.picked_up_by ? `Picked up by @${esc(o.picked_up_by)}.` : esc(o.risk) + "."}</div></div>`).join("")}</div>`;
+}
+
+function onboardCard(d) {
+  if (typeof d === "string") return `<div class="card muted">${esc(d)}</div>`;
+  const ask = Array.isArray(d.ask) ? d.ask.map((g) => `<div class="row"><span>@${esc(g.login)}</span><span class="muted">${g.reviews_here} reviews here · ${pct(g.share_of_recent_work)} of recent work · ${esc(g.last_active)}</span></div>`).join("") : `<div class="muted">${esc(d.ask)}</div>`;
+  const read = d.read_first.map((r) => `<a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.title)}"><b>#${r.number}</b>${esc(r.title)}</a>`).join("");
+  const near = d.usually_changes_with.map((x) => `<code>${esc(x.area)}/</code>`).join(" ");
+  const chain = d.intro_chain && d.intro_chain.chain ? `<div class="caps">Your intro chain</div><div>${d.intro_chain.chain.map((x) => "@" + esc(x)).join(" → ")}</div>` : "";
+  return `<div class="card"><h3>Start contributing to ${esc(d.area)}/</h3>
+    <div class="caps">Ask</div>${ask}
+    <div class="caps">Read these first (small, well discussed)</div><div class="evidence">${read}</div>
+    ${near ? `<div class="caps">Usually changes with</div><div>${near}</div>` : ""}${chain}</div>`;
+}
+
+function proofHtml(proof) {
+  if (!proof || !proof.length) return "";
+  const ms = proof.reduce((t, p) => t + (p.ms || 0), 0);
+  const runs = proof.reduce((t, p) => t + (p.runs || 1), 0);
+  const params = (p) => Object.keys(p.params || {}).length ? `<div class="pp">${esc(JSON.stringify(p.params))}</div>` : "";
+  return `<details class="proof"><summary>Graph proof · ${runs} Cypher ${runs === 1 ? "query" : "queries"} on FalkorDB${ms ? ` · ${Math.round(ms)} ms` : ""}</summary>
+    ${proof.map((p) => `<div class="pq"><div class="pm">${p.runs > 1 ? `ran ${p.runs}× · ` : ""}${p.rows} rows${p.ms != null ? ` · ${p.ms} ms` : ""}</div><pre>${esc(p.cypher)}</pre>${params(p)}</div>`).join("")}</details>`;
 }
 
 /* ---------- asking ---------- */
@@ -708,15 +871,20 @@ async function ask(q) {
           if (ev.tool === "route_pr" && ev.data && ev.data.pr) box.querySelector(".cards").insertAdjacentHTML("beforeend", decisionCard(ev.data));
           if (ev.tool === "triage" && ev.data && ev.data.queue) box.querySelector(".cards").insertAdjacentHTML("beforeend", queueCard(ev.data));
           if (ev.tool === "pave") box.querySelector(".cards").insertAdjacentHTML("beforeend", `<div class="approve"><button class="btn btn-primary" onclick="pave()">Review the CODEOWNERS draft</button></div>`);
+          const card = ev.data && { if_gone: goneCard, compare_routing: (d) => compareCard(d, null), backtest: backtestCard, fading_paths: fadingCard, onboard: onboardCard }[ev.tool];
+          if (card) box.querySelector(".cards").insertAdjacentHTML("beforeend", card(ev.data));
+          if (ev.tool === "if_gone" && ev.data && ev.data.person) S.gone = "p:" + ev.data.person;
           $("#thread").scrollTop = 1e9;
         }
         if (ev.type === "answer") {
           answer = ev.text;
           walk.querySelector(".pending")?.remove();
           if (!steps.length) walk.remove();
-          box.querySelector(".answer").innerHTML = marked.parse(ev.text || "") + evidenceHtml(ev.evidence);
+          box.querySelector(".answer").innerHTML = marked.parse(ev.text || "") + evidenceHtml(ev.evidence)
+            + proofHtml(steps.flatMap((s) => s.proof || []));
           box.querySelectorAll(".answer a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
-          applyHighlight(ev.highlight, true);
+          const gone = steps.find((s) => s.tool === "if_gone");
+          applyHighlight(gone ? gone.highlight : ev.highlight, true);
           if (steps.some((s) => s.tool === "pave")) markPaved(steps.find((s) => s.tool === "pave").highlight);
         }
         if (ev.type === "error") {
@@ -752,7 +920,9 @@ async function pave() {
     const today = Array.isArray(c.today) ? c.today : [];
     return `<div class="chg"><span class="area">${esc(c.area)}/</span><span class="from ${today.length ? "" : "none"}">${today.length ? today.map((x) => "@" + esc(x)).join(" ") : "nobody"}</span><span>→</span><span class="to">${c.suggested.map((x) => "@" + esc(x)).join(" ")}</span></div>`;
   }).join("");
-  $("#pave-code").textContent = "# Drafted by Desire Paths from recent authorship and review activity\n" + d.codeowners;
+  $("#pave-code").textContent = "# Paved by Desire Paths from who actually authored and reviewed recent work.\n"
+    + "# These lines cover code that no existing rule owns today.\n\n" + d.codeowners
+    + "\n\n# ---- Your existing CODEOWNERS rules follow, unchanged. They come last, so they still win. ----";
   $("#pave-status").textContent = "";
   $("#pave-dialog").showModal();
   markPaved(r.highlight);
@@ -831,6 +1001,7 @@ $("#scrub").oninput = (e) => setTime(+e.target.value);
 $("#play").onclick = togglePlay;
 $("#pave-btn").onclick = pave;
 $("#queue-btn").onclick = triageDirect;
+$("#compare-btn").onclick = compareDirect;
 $("#copy-btn").onclick = () => navigator.clipboard.writeText($("#pave-code").textContent);
 document.querySelectorAll("#layers [data-layer]").forEach((b) => (b.onclick = () => {
   S.layers[b.dataset.layer] = !S.layers[b.dataset.layer];
