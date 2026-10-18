@@ -1,0 +1,26 @@
+[project]
+name = "desire-paths"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Arnav Panicker", email = "arnavpanicker26@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "falkordb>=1.8.0",
+    "fastapi>=0.143.5",
+    "httpx>=0.28.1",
+    "mcp>=1.9",
+    "openai>=3.35.1",
+    "python-dotenv>=1.2.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+desire-paths = "desire_paths.server:main"
+desire-paths-mcp = "desire_paths.mcp_server:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
