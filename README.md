@@ -12,7 +12,7 @@ Desire Paths loads both into one FalkorDB graph, shows where they disagree, and 
 
 Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs x FalkorDB), Track 01: *Agents That Act on Connected Data*.
 
-![Apache Airflow: dashed blue is CODEOWNERS, amber is where people actually walk](docs/airflow-map.png)
+![Apache Airflow: dashed violet is CODEOWNERS, the grooves are where people actually walk](docs/airflow-map.png)
 
 ## What it found on real repos
 
@@ -59,13 +59,13 @@ Every attempt is stored in the graph as an `(:Action)` node linked to the PR, so
 Ask in plain language: *Who actually knows the execution plan? What breaks if @x goes on vacation? Where does CODEOWNERS disagree with reality?*
 The agent picks tools, walks the graph, cites PRs, and the map lights up the exact path it reasoned along.
 
-## The signature detail: the worn-grass map
+## The signature detail: paths worn into clay
 
-- **Dashed blue** lines are the blueprint: what `CODEOWNERS` says.
-- **Amber** paths are worn by real pull requests and reviews. Thicker means more work; brighter means more recent. Particles walk along paths used in the last 45 days.
+- **Dashed violet** lines are the blueprint: what `CODEOWNERS` says.
+- **Grooves** are worn into the surface by real pull requests and reviews. Wider and deeper means more work; old paths grow shallow. Teal particles walk along paths used in the last 45 days.
 - **Ghost owners** (dashed circles) own code on paper and are absent in practice.
 - Press **play** to watch 18 months of the repo wear in: paths form, thicken, and fade as people move on. The decay is computed in the browser from the same per-PR events the backend uses.
-- **Pave the paths** turns the amber trails into solid blue and drafts the `CODEOWNERS` that would make the blueprint match reality.
+- **Pave the paths** fills the grooves with violet and drafts the `CODEOWNERS` that would make the blueprint match reality.
 
 ## Why a graph
 

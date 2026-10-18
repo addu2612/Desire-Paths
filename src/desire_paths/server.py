@@ -154,7 +154,10 @@ def graph_view(owner: str, name: str, max_people: int = 60):
             links.append({"source": f"a:{path}", "target": f"a:{path.rsplit('/', 1)[0]}", "kind": "tree"})
     for a, b, n, last in collab:
         links.append({"source": f"p:{a}", "target": f"p:{b}", "kind": "collab", "n": n, "last": last})
-    return {"nodes": list(nodes.values()), "links": links, "now": int(time.time())}
+    # Trimming paths per area can leave someone with no links at all; they would only float off-map.
+    linked = {l["source"] for l in links} | {l["target"] for l in links}
+    kept_nodes = [n for n in nodes.values() if n["kind"] == "area" or n["id"] in linked]
+    return {"nodes": kept_nodes, "links": links, "now": int(time.time())}
 
 
 @app.get("/api/tool/{owner}/{name}/{tool}")

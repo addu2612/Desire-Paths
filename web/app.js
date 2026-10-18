@@ -1,9 +1,13 @@
 /* Desire Paths UI */
 const DAY = 86400;
 const TAU = (120 * DAY) / Math.LN2; // same half-life as the backend
+// Colors come from the CSS tokens so the canvas and the panels can never drift apart.
+const css = getComputedStyle(document.documentElement);
+const tok = (name) => css.getPropertyValue(name).trim();
 const C = {
-  blue: "#5fb3ff", amber: "#ffb547", hot: "#ffd28a", ghost: "#9ad1ff", ink: "#e9eef4",
-  ink2: "#9fb0c3", ink3: "#5f7387", risk: "#ff6b5e", white: "#ffffff",
+  clay: tok("--clay"), fg: tok("--fg"), muted: tok("--muted"), accent: tok("--accent"),
+  teal: tok("--teal"), groove: tok("--groove"), risk: tok("--risk"),
+  dark: "rgba(163,177,198,", light: "rgba(255,255,255,",
 };
 
 const S = {
@@ -13,7 +17,7 @@ const S = {
   hl: null, // {nodes:Set, links:Set}
   paved: new Set(),
   history: [], busy: false, playing: false,
-  maxScore: 1, hoverNode: null,
+  maxScore: 1, hoverNode: null, planFade: 1,
 };
 
 const $ = (s) => document.querySelector(s);
@@ -42,6 +46,7 @@ function recomputeWear() {
   const T = S.T;
   const personScore = new Map();
   const areaHeat = new Map();
+  const personLast = new Map();
   let max = 0.001;
   for (const l of S.data.links) {
     if (l.kind !== "worn") continue;
@@ -50,6 +55,7 @@ function recomputeWear() {
     max = Math.max(max, s);
     const p = idOf(l.source), a = idOf(l.target);
     personScore.set(p, (personScore.get(p) || 0) + s);
+    if (last) personLast.set(p, Math.max(personLast.get(p) || 0, last));
     areaHeat.set(a, (areaHeat.get(a) || 0) + s);
   }
   S.maxScore = max;
@@ -57,7 +63,7 @@ function recomputeWear() {
   personScore.forEach((v) => (maxP = Math.max(maxP, v)));
   areaHeat.forEach((v) => (maxA = Math.max(maxA, v)));
   for (const n of S.data.nodes) {
-    if (n.kind === "person") n._s = (personScore.get(n.id) || 0) / maxP;
+    if (n.kind === "person") { n._s = (personScore.get(n.id) || 0) / maxP; n._last = personLast.get(n.id) || 0; }
     if (n.kind === "area") n._heat = (areaHeat.get(n.id) || 0) / maxA;
   }
 }
@@ -70,130 +76,172 @@ function linkHl(l) {
   return S.hl.links.has(linkKey(a, b)) || S.hl.links.has(linkKey(b, a));
 }
 
+function strokeLine(ctx, a, b, dx = 0, dy = 0) {
+  ctx.beginPath();
+  ctx.moveTo(a.x + dx, a.y + dy);
+  ctx.lineTo(b.x + dx, b.y + dy);
+  ctx.stroke();
+}
+
+// A desire path is a groove cut into the clay: dark rim on the top-left wall, light rim on the
+// bottom-right, the floor in between. More work = wider and deeper; old paths grow shallow.
+function drawGroove(ctx, a, b, width, depth, scale, fill) {
+  const o = (0.8 + depth * 1.6) / scale;
+  ctx.lineCap = "round";
+  ctx.lineWidth = width;
+  ctx.strokeStyle = "rgba(120,135,158," + (0.35 + 0.6 * depth) + ")"; // shadowed upper wall
+  strokeLine(ctx, a, b, -o, -o);
+  ctx.strokeStyle = C.light + (0.7 + 0.3 * depth) + ")";            // lit lower wall
+  strokeLine(ctx, a, b, o, o);
+  ctx.globalAlpha *= 0.55 + 0.45 * depth;
+  ctx.strokeStyle = fill || C.groove;                                 // the worn floor
+  ctx.lineWidth = Math.max(width - 1.2 * o, width * 0.55);
+  strokeLine(ctx, a, b);
+}
+
 function drawLink(l, ctx, scale) {
   const a = l.source, b = l.target;
   if (a.x == null || b.x == null) return;
   const hl = linkHl(l);
-  const dim = S.hl && !hl ? 0.08 : 1;
   ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
+  ctx.globalAlpha = S.hl && !hl ? 0.22 : 1;
   if (l.kind === "tree") {
-    ctx.strokeStyle = `rgba(233,238,244,${0.07 * dim})`;
-    ctx.lineWidth = 0.6 / scale;
-    ctx.stroke();
+    ctx.strokeStyle = "rgba(61,72,82,0.10)";
+    ctx.lineWidth = 0.8 / scale;
+    strokeLine(ctx, a, b);
   } else if (l.kind === "official") {
     ctx.setLineDash([5 / scale, 4 / scale]);
-    ctx.strokeStyle = hl ? C.blue : `rgba(95,179,255,${(l.coverage >= 0.5 ? 0.42 : 0.22) * dim})`;
-    ctx.lineWidth = (hl ? 2.2 : 0.9) / scale;
-    ctx.stroke();
+    ctx.strokeStyle = C.accent;
+    ctx.globalAlpha *= hl ? 1 : (l.coverage >= 0.5 ? 0.42 : 0.2) * S.planFade;
+    ctx.lineWidth = (hl ? 2 : 1) / scale;
+    strokeLine(ctx, a, b);
   } else if (l.kind === "collab") {
-    ctx.strokeStyle = `rgba(233,238,244,${(hl ? 0.8 : 0.16) * dim})`;
-    ctx.lineWidth = (hl ? 2 : 0.4 + Math.min(l.n, 30) / 25) / scale;
-    ctx.stroke();
+    ctx.strokeStyle = hl ? C.fg : "rgba(107,114,128,0.32)";
+    ctx.lineWidth = (hl ? 1.8 : 0.5 + Math.min(l.n, 30) / 30) / scale;
+    strokeLine(ctx, a, b);
   } else if (l.kind === "worn") {
     const rel = Math.sqrt(l._s / S.maxScore);
     const age = l._last ? (S.T - l._last) / DAY : 999;
-    const fresh = Math.max(0.12, Math.exp(-age / 100));
+    const fresh = Math.max(0.1, Math.exp(-age / 100));
+    const depth = Math.min(1, rel * (0.4 + 0.6 * fresh));
+    const width = (2 + rel * 8) / scale;
     const paved = S.paved.has(linkKey(idOf(a), idOf(b)));
-    if (paved) {
-      ctx.strokeStyle = C.blue;
-      ctx.lineWidth = (2.6 + rel * 3) / scale;
-      ctx.globalAlpha = 0.9 * dim;
-      ctx.stroke();
-      ctx.strokeStyle = C.white;
-      ctx.lineWidth = 0.8 / scale;
-      ctx.stroke();
-    } else {
-      ctx.lineCap = "round";
-      ctx.shadowColor = C.amber;
-      const strong = rel * fresh;
-      ctx.shadowBlur = hl ? 18 : strong > 0.25 ? 12 * strong : 0;
-      ctx.strokeStyle = hl ? C.hot : C.amber;
-      ctx.globalAlpha = (hl ? 1 : 0.08 + 0.92 * Math.pow(strong, 0.8)) * dim;
-      ctx.lineWidth = ((hl ? 1.5 : 0) + 0.4 + rel * 5.5) / scale;
-      ctx.stroke();
+    drawGroove(ctx, a, b, width, hl ? 1 : depth, scale, paved ? C.accent : null);
+    if (hl && !paved) {
+      ctx.strokeStyle = C.teal;
+      ctx.lineWidth = Math.max(1.4 / scale, width * 0.38);
+      strokeLine(ctx, a, b);
     }
   } else if (l.kind === "path") {
-    ctx.strokeStyle = C.white;
-    ctx.lineWidth = 2.5 / scale;
-    ctx.shadowColor = C.white;
-    ctx.shadowBlur = 14;
-    ctx.stroke();
+    drawGroove(ctx, a, b, 4 / scale, 1, scale, C.teal);
   }
   ctx.restore();
 }
 
-function drawNode(n, ctx, scale) {
-  const hl = isHl(n.id);
-  const focus = S.hl && S.hl.nodes.has(n.id);
-  const alpha = S.hl && !hl ? 0.15 : 1;
+function label(ctx, text, x, y, size, weight, color, family, align = "center") {
+  ctx.font = `${weight} ${size}px ${family}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = size * 0.42;
+  ctx.strokeStyle = C.clay; // a clay halo keeps labels legible over grooves
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+}
+
+// People are pebbles pressed out of the surface. Canvas shadow offsets are in screen pixels,
+// so the lighting stays constant at every zoom level, like the rest of the UI.
+function pebble(ctx, x, y, r, lift) {
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.fillStyle = C.clay;
+  ctx.shadowColor = C.dark + "0.75)";
+  ctx.shadowOffsetX = ctx.shadowOffsetY = 2 + lift * 3;
+  ctx.shadowBlur = 4 + lift * 6;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowColor = C.light + "0.9)";
+  ctx.shadowOffsetX = ctx.shadowOffsetY = -(2 + lift * 3);
+  ctx.fill();
+  ctx.restore();
+  const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+  g.addColorStop(0, "rgba(255,255,255,0.55)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawNode(n, ctx, scale) {
+  const focus = S.hl && S.hl.nodes.has(n.id);
+  ctx.save();
+  ctx.globalAlpha = S.hl && !focus ? 0.3 : 1;
   const px = 1 / scale;
+  const shrink = 1 / Math.max(1, Math.sqrt(scale));
   if (n.kind === "area") {
-    const size = ((n.depth === 1 ? 4.5 : 2.6) + Math.sqrt(n.prs || 0) * 0.25) / Math.max(1, Math.sqrt(scale));
+    const size = ((n.depth === 1 ? 7 : 4.2) + Math.sqrt(n.prs || 0) * 0.3) * shrink;
     const heat = n._heat || 0;
-    ctx.fillStyle = `rgba(233,238,244,${0.25 + heat * 0.75})`;
-    ctx.fillRect(n.x - size / 2, n.y - size / 2, size, size);
+    // a small well drilled into the clay; busier areas are drilled deeper
+    const x = n.x - size / 2, y = n.y - size / 2;
+    ctx.fillStyle = C.groove;
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = C.dark + (0.4 + heat * 0.5) + ")";
+    ctx.fillRect(x, y, size, Math.max(px, size * 0.22));
+    ctx.fillRect(x, y, Math.max(px, size * 0.22), size);
     if (n.owned && S.layers.blueprint) {
-      ctx.strokeStyle = C.blue;
-      ctx.lineWidth = 1.2 * px;
-      ctx.strokeRect(n.x - size / 2 - 2 * px, n.y - size / 2 - 2 * px, size + 4 * px, size + 4 * px);
+      ctx.setLineDash([2.5 * px, 2 * px]);
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 1.3 * px;
+      ctx.strokeRect(x - 3 * px, y - 3 * px, size + 6 * px, size + 6 * px);
+      ctx.setLineDash([]);
     }
-    const showLabel = (n.depth === 1 && (n.prs >= S.labelMin || scale > 1.3)) || (n.depth === 2 && n.prs >= S.label2Min)
+    const show = (n.depth === 1 && (n.prs >= S.labelMin || scale > 1.3)) || (n.depth === 2 && n.prs >= S.label2Min)
       || focus || scale > 1.8 || S.hoverNode === n;
-    if (showLabel) {
-      const fs = (n.depth === 1 ? 12 : 10.5) * px;
-      ctx.font = `${n.depth === 1 ? 600 : 400} ${fs}px "JetBrains Mono"`;
-      ctx.fillStyle = focus ? C.white : n.depth === 1 ? C.ink : C.ink2;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText((n.depth === 1 || focus ? n.label : n.name) + "/", n.x + size / 2 + 4 * px, n.y);
+    if (show) {
+      const top = n.depth === 1;
+      label(ctx, (top || focus ? n.label : n.name) + "/", n.x + size / 2 + 5 * px, n.y,
+        (top ? 13 : 11) * px, top || focus ? 700 : 500, top || focus ? C.fg : C.muted,
+        top ? '"Plus Jakarta Sans"' : '"DM Sans"', "left");
     }
   } else if (n.kind === "team") {
-    const r = 6;
+    const r = 8;
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const ang = (Math.PI / 3) * i + Math.PI / 6;
       ctx.lineTo(n.x + r * Math.cos(ang), n.y + r * Math.sin(ang));
     }
     ctx.closePath();
-    ctx.strokeStyle = C.blue;
     ctx.setLineDash([3 * px, 2 * px]);
-    ctx.lineWidth = 1.5 * px;
+    ctx.strokeStyle = C.accent;
+    ctx.lineWidth = 1.6 * px;
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.font = `500 ${11 * px}px "JetBrains Mono"`;
-    ctx.fillStyle = C.blue;
-    ctx.textAlign = "center";
-    ctx.fillText("@" + n.label, n.x, n.y + r + 10 * px);
+    label(ctx, "@" + n.label, n.x, n.y + r + 11 * px, 11.5 * px, 700, C.accent, '"Plus Jakarta Sans"');
   } else {
     const s = n._s || 0;
     const ghost = s < 0.01;
-    const r = (ghost ? 3.2 : 2.4 + Math.sqrt(s) * 7) / Math.max(1, Math.sqrt(scale));
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, 2 * Math.PI);
+    const r = (ghost ? 4 : 3.4 + Math.sqrt(s) * 8) * shrink;
     if (ghost) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
       ctx.setLineDash([2 * px, 2 * px]);
-      ctx.strokeStyle = n.ghost ? C.ghost : C.ink3;
-      ctx.lineWidth = 1.2 * px;
+      ctx.strokeStyle = n.ghost ? C.accent : C.muted;
+      ctx.lineWidth = 1.3 * px;
       ctx.stroke();
       ctx.setLineDash([]);
     } else {
-      ctx.shadowColor = C.amber;
-      ctx.shadowBlur = focus ? 22 : 8;
-      ctx.fillStyle = focus ? C.hot : C.amber;
-      ctx.fill();
+      pebble(ctx, n.x, n.y, r, Math.min(1, s * 1.4));
+      if (S.T - (n._last || 0) < 45 * DAY) {
+        ctx.fillStyle = C.teal;
+        ctx.beginPath(); ctx.arc(n.x, n.y, Math.max(1.3 * px, r * 0.28), 0, Math.PI * 2); ctx.fill();
+      }
+      if (focus) {
+        ctx.strokeStyle = C.teal;
+        ctx.lineWidth = 2 * px;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 3 * px, 0, Math.PI * 2); ctx.stroke();
+      }
     }
-    const showLabel = focus || s > 0.35 || scale > 2.2 || S.hoverNode === n;
-    if (showLabel) {
-      ctx.shadowBlur = 0;
-      ctx.font = `${focus ? 600 : 400} ${10.5 * px}px "JetBrains Mono"`;
-      ctx.fillStyle = ghost ? (n.ghost ? C.ghost : C.ink3) : focus ? C.white : C.hot;
-      ctx.textAlign = "center";
-      ctx.fillText("@" + n.label, n.x, n.y + r + 10 * px);
+    if (focus || s > 0.35 || scale > 2.2 || S.hoverNode === n) {
+      label(ctx, "@" + n.label, n.x, n.y + r + 11 * px, 11.5 * px, focus ? 700 : 600,
+        ghost ? C.muted : C.fg, '"Plus Jakarta Sans"');
     }
   }
   ctx.restore();
@@ -235,23 +283,26 @@ function initGraph() {
     .linkCanvasObject(drawLink)
     .linkVisibility(linkVisible)
     .linkDirectionalParticles(particles)
-    .linkDirectionalParticleWidth(2.2)
+    .linkDirectionalParticleWidth(2.6)
     .linkDirectionalParticleSpeed(() => 0.0035)
-    .linkDirectionalParticleColor(() => C.hot)
+    .linkDirectionalParticleColor(() => C.teal)
     .cooldownTicks(260)
     .onNodeHover(onHover)
     .onNodeClick(onClick)
     .onBackgroundClick(() => { clearHighlight(); })
-    .onEngineStop(() => { if (!S._fitted) { S.fg.zoomToFit(600, 90); S._fitted = true; } });
+    .onEngineStop(() => { if (!S._fitted) { S.fg.zoomToFit(600, 40); S._fitted = true; } });
   S.fg.d3Force("charge").strength((n) => (n.kind === "area" ? -30 : -90)).distanceMax(300);
+  S.fg.d3Force("anchor", anchorForce());
+  // Areas are pinned, so the default centering force would keep sliding everyone else off-map.
+  S.fg.d3Force("center", null);
   S.fg.d3Force("link")
     .distance((l) => ({ tree: 46, official: 110, worn: 85, collab: 140 }[l.kind] || 80))
     .strength((l) => ({ tree: 0.8, official: 0.04, worn: 0.12 + 0.3 * Math.sqrt((l.score || 0) / (S.maxScore || 1)), collab: 0.01 }[l.kind] || 0.1));
-  window.addEventListener("resize", () => S.fg.width(el.clientWidth).height(el.clientHeight));
+  new ResizeObserver(() => S.fg.width(el.clientWidth).height(el.clientHeight)).observe(el);
   el.addEventListener("mousemove", (e) => {
     const h = $("#hover");
     const r = $("#stage").getBoundingClientRect();
-    h.style.left = Math.min(e.clientX - r.left + 14, r.width - 300) + "px";
+    h.style.left = Math.min(e.clientX - r.left + 16, r.width - 310) + "px";
     h.style.top = e.clientY - r.top + 14 + "px";
   });
 }
@@ -267,24 +318,21 @@ function onHover(n) {
   const h = $("#hover");
   $("#graph").style.cursor = n ? "pointer" : "";
   if (!n) { h.style.display = "none"; return; }
-  const now = S.T;
   let html = "";
   if (n.kind === "area") {
-    const owners = S.data.links.filter((l) => l.kind === "official" && idOf(l.target) === n.id).map((l) => idOf(l.source).slice(2));
+    const owners = S.data.links.filter((l) => l.kind === "official" && idOf(l.target) === n.id).map((l) => "@" + idOf(l.source).slice(2));
     const walkers = S.data.links.filter((l) => l.kind === "worn" && idOf(l.target) === n.id && l._s > 0.002)
-      .sort((a, b) => b._s - a._s).slice(0, 3).map((l) => `@${idOf(l.source).slice(2)}`);
+      .sort((a, b) => b._s - a._s).slice(0, 3).map((l) => "@" + idOf(l.source).slice(2));
     html = `<b>${esc(n.label)}/</b><br><span class="k">${n.prs} PRs · ${n.files ?? "?"} files</span><br>
-      <span style="color:${C.blue}">Officially:</span> ${owners.length ? esc(owners.map((o) => "@" + o).join(", ")) : "<i>nobody</i>"}<br>
-      <span style="color:${C.amber}">Actually walked by:</span> ${esc(walkers.join(", ") || "-")}`;
+      <span class="k-plan">Officially:</span> ${owners.length ? esc(owners.join(", ")) : '<span class="k-ghost">nobody</span>'}<br>
+      <span class="k-walked">Actually walked by:</span> ${esc(walkers.join(", ") || "-")}`;
   } else if (n.kind === "team") {
     html = `<b>@${esc(n.label)}</b><br><span class="k">team in CODEOWNERS</span>`;
   } else {
-    const ws = S.data.links.filter((l) => l.kind === "worn" && idOf(l.source) === n.id);
-    const last = Math.max(0, ...ws.map((l) => l._last || 0));
     const owns = S.data.links.filter((l) => l.kind === "official" && idOf(l.source) === n.id).length;
-    html = `<b>@${esc(n.label)}</b><br><span class="k">${n.prs ?? 0} PR touches · last active ${ago(last || null, now)}</span>
-      ${owns ? `<br><span style="color:${C.blue}">Official owner of ${owns} area${owns > 1 ? "s" : ""}</span>` : ""}
-      ${(n._s || 0) < 0.01 && owns ? `<br><span style="color:${C.ghost}">Ghost owner: no recent work here</span>` : ""}`;
+    html = `<b>@${esc(n.label)}</b><br><span class="k">${n.prs ?? 0} PR touches · last active ${ago(n._last || null, S.T)}</span>
+      ${owns ? `<br><span class="k-plan">Official owner of ${owns} area${owns > 1 ? "s" : ""}</span>` : ""}
+      ${(n._s || 0) < 0.01 && owns ? '<br><span class="k-ghost">Ghost owner: no recent work here</span>' : ""}`;
   }
   h.innerHTML = html;
   h.style.display = "block";
@@ -349,9 +397,26 @@ function layoutMap(data) {
     const ls = data.links.filter((l) => idOf(l.source) === n.id && (l.kind === "worn" || l.kind === "official"));
     let x = 0, y = 0, k = 0;
     for (const l of ls) { const a = pos.get(idOf(l.target)); if (a && a.fx != null) { const w = l.score || 0.2; x += a.fx * w; y += a.fy * w; k += w; } }
-    n.x = k ? (x / k) * 0.7 : (Math.random() - 0.5) * 100;
-    n.y = k ? (y / k) * 0.7 : (Math.random() - 0.5) * 100;
+    n._tx = k ? (x / k) * 0.7 : 0;
+    n._ty = k ? (y / k) * 0.7 : 0;
+    n.x = n._tx + (Math.random() - 0.5) * 20;
+    n.y = n._ty + (Math.random() - 0.5) * 20;
   }
+}
+
+// Gently pull every free node toward the centre of the areas it is tied to, so people linked
+// only by reviews (or teams linked only by the blueprint) can't drift off the map.
+function anchorForce(strength = 0.06) {
+  let nodes = [];
+  const force = (alpha) => {
+    for (const n of nodes) {
+      if (n.fx != null || n._tx == null) continue;
+      n.vx += (n._tx - n.x) * strength * alpha;
+      n.vy += (n._ty - n.y) * strength * alpha;
+    }
+  };
+  force.initialize = (ns) => (nodes = ns);
+  return force;
 }
 
 /* ---------- highlight ---------- */
@@ -391,7 +456,7 @@ function applyHighlight(h, replace = false) {
 
 // Fit the camera to some nodes, but never zoom in so far that the map loses its context.
 function fitTo(filter) {
-  S.fg.zoomToFit(700, 150, filter);
+  S.fg.zoomToFit(700, 110, filter);
   setTimeout(() => { if (S.fg.zoom() > 2.4) S.fg.zoom(2.4, 400); }, 720);
 }
 
@@ -425,7 +490,7 @@ function setTime(v) {
 function togglePlay() {
   S.playing = !S.playing;
   $("#play").classList.toggle("playing", S.playing);
-  $("#play").textContent = S.playing ? "❚❚" : "▶";
+  $("#play").setAttribute("aria-label", S.playing ? "Pause time-lapse" : "Play time-lapse");
   if (!S.playing) return;
   let v = +$("#scrub").value;
   if (v >= 999) v = 0;
@@ -444,12 +509,21 @@ function togglePlay() {
 function renderSummary() {
   const r = S.repos.find((x) => x.repo === S.repo);
   const cov = Math.round((r.coverage || 0) * 100);
-  const humans = S.data.nodes.filter((n) => n.kind === "person").length;
+  const R = 40, len = 2 * Math.PI * R;
   $("#summary").innerHTML = `
-    <div class="big">${cov}%<small>of files have an official owner</small></div>
-    <div class="meter"><div style="width:${cov}%"></div></div>
-    <div class="meter-cap"><span>blueprint</span><span>everything else is walked, not paved</span></div>
-    <div class="sum-line"><b>${esc(r.repo)}</b> · ${r.stats.PR} merged PRs · ${r.stats.Person} contributors · ${fmtMonth(r.from)} to ${fmtMonth(r.to)}</div>`;
+    <div class="dial" role="img" aria-label="${cov}% of files have an official owner">
+      <div class="dial-ring">
+        <svg viewBox="0 0 92 92" width="92" height="92" aria-hidden="true">
+          <circle cx="46" cy="46" r="${R}" fill="none" stroke="${C.accent}" stroke-width="5" stroke-linecap="round"
+            stroke-dasharray="${(len * cov) / 100} ${len}" />
+        </svg>
+        <div class="dial-core">${cov}%</div>
+      </div>
+    </div>
+    <div>
+      <div class="sum-title">of files have an official owner.<br>The rest is walked, not paved.</div>
+      <div class="sum-line">${esc(r.repo)} · ${r.stats.PR} merged PRs · ${r.stats.Person} contributors<br>${fmtMonth(r.from)} to ${fmtMonth(r.to)}</div>
+    </div>`;
 }
 
 function renderSuggestions() {
@@ -479,30 +553,38 @@ function evidenceHtml(ev) {
   if (!ev || !ev.length) return "";
   ev = [...new Map(ev.map((e) => [e.url, e])).values()];
   return `<div class="evidence">${ev.slice(0, 8).map((e) =>
-    `<a href="${esc(e.url)}" target="_blank" rel="noopener" title="${esc(e.title)}">#${e.number} ${esc(e.title)}</a>`).join("")}</div>`;
+    `<a href="${esc(e.url)}" target="_blank" rel="noopener" title="${esc(e.title)}"><b>#${e.number}</b>${esc(e.title)}</a>`).join("")}</div>`;
 }
 
+const meter = (share, cls = "") => `<div class="meter ${cls}"><span style="width:${Math.max(3, Math.round(share * 100))}%"></span></div>`;
+const initials = (login) => esc(login.replace(/[^A-Za-z0-9]/g, "").slice(0, 2));
+const jsonPost = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+
 function areaCard(r) {
-  if (!r.data.actual_people) return `<div class="card"><h3>${esc(r.data.topic || "")}</h3><pre>${esc(JSON.stringify(r.data, null, 1))}</pre></div>`;
   const d = r.data;
+  if (!d.actual_people) {
+    const ppl = (d.people || []).map((p) => `<div class="row"><span>@${esc(p.login)}</span><span class="muted">${p.matching_prs} matching PRs · ${esc(p.last)}</span></div>`).join("");
+    return `<div class="card"><h3>${esc(d.topic || "Topic")}</h3>${ppl || '<div class="muted">No matching work found.</div>'}${evidenceHtml(r.evidence)}</div>`;
+  }
   const off = Array.isArray(d.official_owners)
-    ? d.official_owners.map((o) => `<div class="row"><span class="off">@${esc(o.owner)}</span><span class="muted">${o.active_here ? "active " + o.active_here.last : o.kind === "Team" ? "team" : "no recent work here"}</span></div>`).join("")
-    : `<div class="row muted">nobody: no CODEOWNERS rule</div>`;
-  const ppl = d.actual_people.map((p) => `<div><div class="row"><span>@${esc(p.login)}</span><span class="muted">${p.authored} authored · ${p.reviewed} reviewed · ${p.last_active}</span></div><div class="bar" style="width:${Math.round(p.share_of_recent_work * 100)}%"></div></div>`).join("");
+    ? d.official_owners.map((o) => `<div class="row"><span class="plan">@${esc(o.owner)}</span><span class="muted">${o.active_here ? "active " + esc(o.active_here.last) : o.kind === "Team" ? "team" : "no recent work here"}</span></div>`).join("")
+    : '<div class="row muted">Nobody. No CODEOWNERS rule covers it.</div>';
+  const ppl = d.actual_people.map((p) => `<div class="row"><span>@${esc(p.login)}</span><span class="muted">${p.authored} authored · ${p.reviewed} reviewed · ${esc(p.last_active)}</span></div>${meter(p.share_of_recent_work)}`).join("");
   return `<div class="card"><h3>${esc(d.area)}/</h3>
-    <div class="muted" style="font-size:11px;margin-bottom:4px">OFFICIALLY</div>${off}
-    <div class="muted" style="font-size:11px;margin:10px 0 4px">ACTUALLY (share of recent work)</div>${ppl}
+    <div class="caps">Officially</div>${off}
+    <div class="caps">Actually · share of recent work</div>${ppl}
     ${evidenceHtml(r.evidence)}</div>`;
 }
 
 function personCard(r) {
   const d = r.data;
-  const works = d.works_on.map((w) => `<div class="row"><span>${esc(w.area)}/</span><span class="muted">${w.prs} PRs · ${w.last}</span></div>`).join("");
+  const works = d.works_on.map((w) => `<div class="row"><span>${esc(w.area)}/</span><span class="muted">${w.prs} PRs · ${esc(w.last)}</span></div>`).join("");
   const rev = d.reviews_with.map((w) => `@${esc(w.login)} (${w.reviews})`).join(", ");
-  const owns = Array.isArray(d.officially_owns) ? d.officially_owns.map((a) => esc(a)).join(", ") : esc(d.officially_owns);
-  return `<div class="card"><h3>@${esc(d.login)}</h3>${works}
-    <div class="row" style="margin-top:6px"><span class="muted">reviews with</span><span>${rev || "-"}</span></div>
-    <div class="row"><span class="off">officially owns</span><span>${owns}</span></div></div>`;
+  const owns = Array.isArray(d.officially_owns) ? d.officially_owns.map(esc).join(", ") : esc(d.officially_owns);
+  return `<div class="card"><h3>@${esc(d.login)}</h3>
+    <div class="caps">Actually works on</div>${works}
+    <div class="caps">Reviews with</div><div>${rev || "-"}</div>
+    <div class="caps">Officially owns</div><div class="plan">${owns}</div></div>`;
 }
 
 /* ---------- decisions & actions ---------- */
@@ -510,9 +592,12 @@ function decisionCard(d) {
   if (typeof d === "string") return `<div class="card muted">${esc(d)}</div>`;
   const pr = d.pr;
   const dec = d.decision || {};
-  const touches = (d.touches || []).map((t) => `<div class="touch"><span>${esc(t.area)}/</span><div class="tb" style="width:${Math.round(t.share_of_change * 100)}%"></div></div>`).join("");
-  const hop = (c, tag, why) => c ? `<div class="hop"><span class="tagline">${tag}</span><span class="who">@${esc(c.login)}</span>
-      <span class="why">${Math.round(c.share_of_recent_work_there * 100)}% of recent work in <code>${esc(c.main_area)}/</code> · ${c.prs_there} PRs · active ${esc(c.last_active)} · ${c.open_review_requests} open reviews${c.has_reviewed_author_before ? ` · reviewed @${esc(pr.author)} ${c.has_reviewed_author_before}× before` : ""}${why ? `<br><i>${esc(why)}</i>` : ""}</span></div>` : "";
+  const touches = (d.touches || []).map((t) => `<div class="touch"><span>${esc(t.area)}/</span>${meter(t.share_of_change)}</div>`).join("");
+  const hop = (c, role, why) => c ? `<div class="hop">
+      <div class="well"><span>${initials(c.login)}</span></div>
+      <div><div class="role">${role}</div><div class="who">@${esc(c.login)}</div>
+        <div class="why">${Math.round(c.share_of_recent_work_there * 100)}% of recent work in <code>${esc(c.main_area)}/</code> · ${c.prs_there} PRs · active ${esc(c.last_active)} · ${c.open_review_requests} open reviews${c.has_reviewed_author_before ? ` · reviewed @${esc(pr.author)} ${c.has_reviewed_author_before}× before` : ""}${why ? `<br><i>${esc(why)}</i>` : ""}</div></div>
+    </div>` : "";
   const ruled = (d.considered_and_rejected || []).map((r) => `<s>@${esc(r.login)}</s> ${esc(r.why_not)}`).join(" · ");
   const verdicts = Array.isArray(d.currently_requested)
     ? d.currently_requested.map((v) => `<div class="verdict">Requested @${esc(v.requested)}: <span class="${v.verdict === "good choice" ? "good" : "bad"}">${esc(v.verdict)}</span></div>`).join("")
@@ -520,16 +605,16 @@ function decisionCard(d) {
   const past = (d.past_actions_on_this_pr || []).map((a) => `${esc(a.kind)} ${esc(a.status)} ${esc(a.when)}`).join(", ");
   const act = d.proposed_action;
   const id = "act-" + Math.random().toString(36).slice(2);
-  setTimeout(() => wireApprove(id, act), 0);
+  if (act) setTimeout(() => wireApprove(id, act), 0);
   return `<div class="decision">
     <div class="pr-title"><a href="${esc(pr.url)}" target="_blank" rel="noopener">#${pr.number} ${esc(pr.title)}</a></div>
     <div class="pr-meta">by @${esc(pr.author)} · opened ${esc(pr.opened)}${pr.draft ? " · draft" : ""}</div>
-    <div class="muted" style="font:10px var(--mono);letter-spacing:.06em">TOUCHES</div>${touches}
+    <div class="caps">Touches</div>${touches}
     <div class="chain">${hop(dec.primary, "Primary reviewer", "")}${hop(dec.second, "Second reviewer", dec.why_second)}</div>
     ${ruled ? `<div class="ruled">Ruled out: ${ruled}</div>` : ""}
     ${verdicts}
     ${past ? `<div class="ruled">Already done: ${past}</div>` : ""}
-    ${act ? `<div class="approve" id="${id}"><button>Request ${act.reviewers.map((r) => "@" + esc(r)).join(" + ")}</button><span class="note">checking permissions…</span></div>` : ""}
+    ${act ? `<div class="approve" id="${id}"><button class="btn btn-primary">Request ${act.reviewers.map((r) => "@" + esc(r)).join(" + ")}</button><span class="note">Checking permissions…</span></div>` : ""}
   </div>`;
 }
 
@@ -538,29 +623,29 @@ async function wireApprove(id, act) {
   if (!box) return;
   const btn = box.querySelector("button"), note = box.querySelector(".note");
   const body = { repo: S.repo, kind: "request_reviewers", number: act.number, reviewers: act.reviewers };
-  const plan = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
-  note.textContent = plan.can_write ? "you have write access: this will request reviews on GitHub"
-    : !plan.writes_enabled ? "demo server: approving records a dry run in the graph, nothing is posted"
-    : `read-only on ${S.repo}: approving records a dry run, nothing is posted`;
+  const plan = await jsonPost("/api/act", body);
+  note.textContent = plan.can_write ? "You have write access. This requests the reviews on GitHub."
+    : !plan.writes_enabled ? "Demo server: approving records a dry run in the graph. Nothing is posted."
+    : `Read-only on ${S.repo}: approving records a dry run. Nothing is posted.`;
   btn.onclick = async () => {
     btn.disabled = true;
-    note.textContent = "working…";
-    const r = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, confirm: true }) })).json();
-    note.innerHTML = r.status === "done" ? `done · <a href="${esc(r.url)}" target="_blank">view on GitHub</a>`
-      : r.status === "dry-run" ? `dry run recorded in the graph: ${esc(r.reason)}` : `failed: ${esc(r.error || r.status)}`;
+    note.textContent = "Working…";
+    const r = await jsonPost("/api/act", { ...body, confirm: true });
+    note.innerHTML = r.status === "done" ? `Done. <a href="${esc(r.url)}" target="_blank" rel="noopener">View on GitHub</a>`
+      : r.status === "dry-run" ? `Dry run recorded in the graph: ${esc(r.reason)}.` : `Failed: ${esc(r.error || r.status)}`;
   };
 }
 
 function queueCard(d) {
   const rows = d.queue.map((q) => `<div class="qrow sev${q.severity}">
-      <span class="num"><a href="${esc(q.url)}" target="_blank" rel="noopener">#${q.number}</a></span>
-      <div class="t"><div title="${esc(q.title)}">${esc(q.title)}</div><div class="prob">${esc(q.problems[0])}</div>
-        <div class="sug">${q.suggested.length ? "→ " + q.suggested.map((x) => "@" + esc(x)).join(", ") : ""}</div></div>
-      <button data-n="${q.number}">Route</button></div>`).join("");
+      <div class="t"><div class="title" title="${esc(q.title)}"><a href="${esc(q.url)}" target="_blank" rel="noopener">#${q.number}</a>${esc(q.title)}</div>
+        <div class="prob">${esc(q.problems[0])}</div>
+        <div class="sug">${q.suggested.length ? "Suggest " + q.suggested.map((x) => "@" + esc(x)).join(", ") : ""}</div></div>
+      <button class="btn btn-sm" data-n="${q.number}">Route</button></div>`).join("");
   setTimeout(() => document.querySelectorAll(".qrow button[data-n]").forEach((b) => (b.onclick = () => routeDirect(+b.dataset.n))), 0);
   const kinds = { unrouted: "nobody asked", "absent-reviewer": "absent reviewer", "wrong-reviewer": "wrong reviewer", waiting: "waiting 14d+" };
   return `<div class="decision"><div class="pr-title">Review queue triage</div>
-    <div class="stats3"><div><b>${d.open_prs_checked}</b>open PRs checked</div><div><b style="color:var(--risk)">${d.flagged}</b>misrouted</div>
+    <div class="stats3"><div><b>${d.open_prs_checked}</b>open PRs checked</div><div><b class="risk">${d.flagged}</b>misrouted</div>
       ${Object.entries(d.by_problem).map(([k, v]) => `<div><b>${v}</b>${esc(kinds[k] || k)}</div>`).join("")}</div>
     <div class="queue">${rows}</div></div>`;
 }
@@ -591,7 +676,7 @@ async function ask(q) {
   $("#suggest").classList.add("compact");
   const box = document.createElement("div");
   box.className = "msg-agent";
-  box.innerHTML = `<div class="walk"><div class="pending"><span class="foot">●</span><span>reading the graph…</span></div></div><div class="answer"></div><div class="cards"></div>`;
+  box.innerHTML = `<div class="walk"><div class="pending"><span class="foot"></span><span>reading the graph…</span></div></div><div class="answer"></div><div class="cards"></div>`;
   $("#thread").appendChild(box);
   const walk = box.querySelector(".walk");
   const steps = [];
@@ -613,16 +698,16 @@ async function ask(q) {
         const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
         if (!chunk.startsWith("data: ")) continue;
         const ev = JSON.parse(chunk.slice(6));
-        if (ev.type === "model") $("#model").textContent = `agent: ${ev.provider} · ${ev.model} · graph: FalkorDB`;
+        if (ev.type === "model") $("#model").textContent = `Agent: ${ev.provider} · ${ev.model} · Graph: FalkorDB`;
         if (ev.type === "step") {
           steps.push(ev);
-          walk.innerHTML = steps.map((s, k) => `<div data-k="${k}"><span class="foot">→</span><span>${esc(s.label)}</span></div>`).join("")
-            + `<div class="pending"><span class="foot">●</span><span>walking…</span></div>`;
+          walk.innerHTML = steps.map((s, k) => `<div data-k="${k}"><span class="foot"></span><span>${esc(s.label)}</span></div>`).join("")
+            + `<div class="pending"><span class="foot"></span><span>walking…</span></div>`;
           walk.querySelectorAll("[data-k]").forEach((d) => (d.onclick = () => applyHighlight(steps[+d.dataset.k].highlight, true)));
           applyHighlight(ev.highlight);
           if (ev.tool === "route_pr" && ev.data && ev.data.pr) box.querySelector(".cards").insertAdjacentHTML("beforeend", decisionCard(ev.data));
           if (ev.tool === "triage" && ev.data && ev.data.queue) box.querySelector(".cards").insertAdjacentHTML("beforeend", queueCard(ev.data));
-          if (ev.tool === "pave") box.querySelector(".cards").insertAdjacentHTML("beforeend", `<div class="approve"><button onclick="pave()">Review the CODEOWNERS draft</button></div>`);
+          if (ev.tool === "pave") box.querySelector(".cards").insertAdjacentHTML("beforeend", `<div class="approve"><button class="btn btn-primary" onclick="pave()">Review the CODEOWNERS draft</button></div>`);
           $("#thread").scrollTop = 1e9;
         }
         if (ev.type === "answer") {
@@ -665,22 +750,22 @@ async function pave() {
   const d = r.data;
   $("#pave-changes").innerHTML = d.changes_vs_today.map((c) => {
     const today = Array.isArray(c.today) ? c.today : [];
-    return `<div class="chg"><span>${esc(c.area)}/</span><span class="from ${today.length ? "" : "none"}">${today.length ? today.map((x) => "@" + esc(x)).join(" ") : "nobody"}</span><span>→</span><span class="to">${c.suggested.map((x) => "@" + esc(x)).join(" ")}</span></div>`;
+    return `<div class="chg"><span class="area">${esc(c.area)}/</span><span class="from ${today.length ? "" : "none"}">${today.length ? today.map((x) => "@" + esc(x)).join(" ") : "nobody"}</span><span>→</span><span class="to">${c.suggested.map((x) => "@" + esc(x)).join(" ")}</span></div>`;
   }).join("");
   $("#pave-code").textContent = "# Drafted by Desire Paths from recent authorship and review activity\n" + d.codeowners;
   $("#pave-status").textContent = "";
   $("#pave-dialog").showModal();
   markPaved(r.highlight);
-  const plan = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo: S.repo, kind: "open_codeowners_pr" }) })).json();
+  const plan = await jsonPost("/api/act", { repo: S.repo, kind: "open_codeowners_pr" });
   const btn = $("#pave-pr-btn");
   btn.disabled = false;
-  $("#pave-status").textContent = plan.target ? `will open a PR on ${plan.target}`
-    : !plan.writes_enabled ? "demo server: approving records a dry run" : `read-only on ${S.repo} and no fork: approving records a dry run`;
+  $("#pave-status").textContent = plan.target ? `Opens a PR on ${plan.target}.`
+    : !plan.writes_enabled ? "Demo server: approving records a dry run." : `Read-only on ${S.repo} and no fork: approving records a dry run.`;
   btn.onclick = async () => {
     btn.disabled = true;
-    $("#pave-status").textContent = "opening PR…";
-    const res = await (await fetch("/api/act", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo: S.repo, kind: "open_codeowners_pr", confirm: true }) })).json();
-    $("#pave-status").innerHTML = res.status === "done" ? `opened · <a href="${esc(res.url)}" target="_blank">${esc(res.url)}</a>` : esc(res.reason || res.error || res.status);
+    $("#pave-status").textContent = "Opening PR…";
+    const res = await jsonPost("/api/act", { repo: S.repo, kind: "open_codeowners_pr", confirm: true });
+    $("#pave-status").innerHTML = res.status === "done" ? `Opened: <a href="${esc(res.url)}" target="_blank" rel="noopener">${esc(res.url)}</a>` : esc(res.reason || res.error || res.status);
   };
 }
 
@@ -702,26 +787,27 @@ async function loadRepo(repo) {
   recomputeWear();
   if (!S.fg) initGraph();
   layoutMap(S.data);
+  const planLinks = S.data.links.filter((l) => l.kind === "official").length;
+  S.planFade = Math.min(1, 60 / Math.max(planLinks, 1)) ** 0.5;
   const tops = S.data.nodes.filter((n) => n.kind === "area" && n.depth === 1).map((n) => n.prs).sort((a, b) => b - a);
   S.labelMin = tops[Math.min(13, tops.length - 1)] || 0;
   const subs = S.data.nodes.filter((n) => n.kind === "area" && n.depth === 2).map((n) => n.prs).sort((a, b) => b - a);
   S.label2Min = Math.max(3, subs[Math.min(9, subs.length - 1)] || 0);
-  setTimeout(() => S.fg.zoomToFit(600, 70), 1800);
+  setTimeout(() => S.fg.zoomToFit(600, 40), 1800);
   S.fg.graphData({ nodes: S.data.nodes, links: S.data.links });
   renderSummary();
   renderSuggestions();
   $("#thread").innerHTML = "";
   $("#suggest").classList.remove("compact");
-  addCard(`<div class="msg-agent" style="color:var(--ink-2);font-size:13px">
-    Each <span style="color:var(--amber)">amber path</span> is worn by real pull requests and reviews; it fades when people stop walking it.
-    <span style="color:var(--blue)">Dashed blue</span> is what CODEOWNERS says. Press ▶ to watch ${esc(repo)} wear in over time, click any area or person, or ask below.</div>`);
+  addCard(`<div class="intro">Every <b class="k-walked">groove</b> is worn by real pull requests and reviews, and grows shallow when people stop walking it.
+    The <span class="k-plan">dashed violet</span> lines are what CODEOWNERS says. Press play to watch ${esc(repo)} wear in, click any area or person, or ask below.</div>`);
 }
 
 async function ingest(e) {
   e.preventDefault();
   const repo = $("#ingest-input").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
   if (!repo.includes("/")) return;
-  addCard(`<div class="msg-agent walk"><div class="pending" id="ing"><span class="foot">●</span><span>walking ${esc(repo)}: starting…</span></div></div>`);
+  addCard(`<div class="msg-agent walk"><div class="pending" id="ing"><span class="foot"></span><span>walking ${esc(repo)}: starting…</span></div></div>`);
   await fetch("/api/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo }) });
   const [o, n] = repo.split("/");
   for (;;) {
@@ -749,7 +835,8 @@ $("#copy-btn").onclick = () => navigator.clipboard.writeText($("#pave-code").tex
 document.querySelectorAll("#layers [data-layer]").forEach((b) => (b.onclick = () => {
   S.layers[b.dataset.layer] = !S.layers[b.dataset.layer];
   b.classList.toggle("on", S.layers[b.dataset.layer]);
+  b.setAttribute("aria-pressed", String(S.layers[b.dataset.layer]));
   refresh();
 }));
-fetch("/api/health").then((r) => r.json()).then((h) => ($("#model").textContent = `agent: ${h.llm} · graph: FalkorDB`));
+fetch("/api/health").then((r) => r.json()).then((h) => ($("#model").textContent = `Agent: ${h.llm} · Graph: FalkorDB`));
 loadRepos();

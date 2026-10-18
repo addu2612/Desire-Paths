@@ -4,83 +4,97 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Desire Paths</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2308131f%22/%3E%3Cpath d=%22M4 28 L28 4%22 stroke=%22%235fb3ff%22 stroke-width=%222%22 stroke-dasharray=%223 3%22/%3E%3Cpath d=%22M4 28 C 10 12, 20 22, 28 4%22 stroke=%22%23ffb547%22 stroke-width=%223%22 fill=%22none%22/%3E%3C/svg%3E">
+<meta name="description" content="Who actually works on each part of a repository, versus what CODEOWNERS says, and an agent that routes reviews from it.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%23E0E5EC%22/%3E%3Cpath d=%22M5 27 L27 5%22 stroke=%22%236C63FF%22 stroke-width=%222%22 stroke-dasharray=%223 3%22/%3E%3Cpath d=%22M5 27 C 11 11, 21 21, 27 5%22 stroke=%22%233D4852%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/force-graph@1.43.5/dist/force-graph.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <div id="app">
-  <main id="stage">
-    <div id="graph"></div>
-
-    <header id="masthead">
-      <div class="brand">
-        <h1>Desire <em>Paths</em></h1>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><span></span></span>
+      <div>
+        <h1 class="font-display">Desire Paths</h1>
         <p class="tag">The org chart is the paved path. This is where people actually walk.</p>
       </div>
-      <div class="controls">
-        <select id="repo" aria-label="Repository"></select>
-        <form id="ingest-form" title="Load any public GitHub repo">
-          <input id="ingest-input" placeholder="owner/repo" spellcheck="false" autocomplete="off">
-          <button type="submit">Walk it</button>
-        </form>
+    </div>
+    <div class="controls">
+      <label class="sr-only" for="repo">Repository</label>
+      <select id="repo" class="field"></select>
+      <form id="ingest-form" class="ingest" title="Load any public GitHub repo">
+        <label class="sr-only" for="ingest-input">Load a repository</label>
+        <input id="ingest-input" class="field" placeholder="owner/repo" spellcheck="false" autocomplete="off">
+        <button type="submit" class="btn">Walk it</button>
+      </form>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="map-card raised" aria-label="Map">
+      <div class="map-toolbar">
+        <div id="layers" class="toggles" role="group" aria-label="Layers">
+          <button data-layer="blueprint" class="toggle on" aria-pressed="true"><span class="sw sw-plan"></span>Blueprint</button>
+          <button data-layer="worn" class="toggle on" aria-pressed="true"><span class="sw sw-groove"></span>Desire paths</button>
+          <button data-layer="collab" class="toggle" aria-pressed="false"><span class="sw sw-thread"></span>Reviews</button>
+        </div>
+        <div class="actions">
+          <button id="pave-btn" class="btn">Pave the paths</button>
+          <button id="queue-btn" class="btn btn-primary">Triage review queue</button>
+        </div>
       </div>
-    </header>
 
-    <div id="layers" role="group" aria-label="Layers">
-      <button data-layer="blueprint" class="on"><span class="sw sw-blue"></span>Blueprint</button>
-      <button data-layer="worn" class="on"><span class="sw sw-amber"></span>Desire paths</button>
-      <button data-layer="collab"><span class="sw sw-faint"></span>Reviews</button>
-      <button id="queue-btn" class="pave">Triage review queue</button>
-      <button id="pave-btn" class="pave">Pave the paths</button>
-    </div>
-
-    <div id="timeline">
-      <button id="play" aria-label="Play time-lapse">▶</button>
-      <div class="track">
-        <input id="scrub" type="range" min="0" max="1000" value="1000" aria-label="Time">
-        <div id="ticks"></div>
+      <div id="stage" class="map-well">
+        <div id="graph"></div>
+        <div id="legend" aria-hidden="true">
+          <div><span class="lg lg-plan"></span>CODEOWNERS says</div>
+          <div><span class="lg lg-groove"></span>Worn by real PRs and reviews (deeper = more)</div>
+          <div><span class="lg lg-fresh"></span>Walked in the last 45 days</div>
+          <div><span class="lg lg-ghost"></span>Ghost owner: on paper only</div>
+        </div>
+        <div id="hover" role="tooltip"></div>
       </div>
-      <div id="when">now</div>
-    </div>
 
-    <div id="legend">
-      <div><span class="lg lg-blue"></span>CODEOWNERS says (dashed blueprint)</div>
-      <div><span class="lg lg-amber"></span>Actually walked: thicker = more work, brighter = more recent</div>
-      <div><span class="lg lg-ghost"></span>Ghost owner: owns it on paper, absent in practice</div>
-    </div>
+      <div id="timeline">
+        <button id="play" class="btn btn-round" aria-label="Play time-lapse"><span class="ico-play"></span></button>
+        <div class="track">
+          <input id="scrub" type="range" min="0" max="1000" value="1000" aria-label="Point in time">
+          <div id="ticks"></div>
+        </div>
+        <output id="when" class="when-pill">now</output>
+      </div>
+    </section>
 
-    <div id="hover"></div>
+    <aside id="panel" class="raised" aria-label="Agent">
+      <section id="summary"></section>
+      <section id="thread" aria-live="polite"></section>
+      <section id="suggest" aria-label="Suggested questions"></section>
+      <form id="ask-form">
+        <label class="sr-only" for="ask">Ask the agent</label>
+        <textarea id="ask" class="field" rows="2" placeholder="Who actually knows the query planner?"></textarea>
+        <button type="submit" id="ask-btn" class="btn btn-primary">Ask</button>
+      </form>
+      <div id="model"></div>
+    </aside>
   </main>
-
-  <aside id="panel">
-    <section id="summary"></section>
-    <section id="thread" aria-live="polite"></section>
-    <section id="suggest"></section>
-    <form id="ask-form">
-      <textarea id="ask" rows="2" placeholder="Who actually knows the query planner?"></textarea>
-      <button type="submit" id="ask-btn">Ask</button>
-    </form>
-    <div id="model"></div>
-  </aside>
 </div>
 
-<dialog id="pave-dialog">
+<dialog id="pave-dialog" class="raised">
   <div class="dlg-head">
-    <h2>Pave where people walk</h2>
-    <button class="x" onclick="this.closest('dialog').close()" aria-label="Close">×</button>
+    <h2 class="font-display">Pave where people walk</h2>
+    <button class="btn btn-round x" onclick="this.closest('dialog').close()" aria-label="Close">×</button>
   </div>
   <p class="dlg-sub">A CODEOWNERS file drafted from the desire paths: the people who authored and reviewed the recent work in each area.</p>
   <div id="pave-changes"></div>
   <pre id="pave-code"></pre>
   <div class="dlg-foot">
     <span id="pave-status"></span>
-    <button id="copy-btn" class="ghost-btn">Copy</button>
-    <button id="pave-pr-btn">Open as a PR on GitHub</button>
+    <button id="copy-btn" class="btn">Copy</button>
+    <button id="pave-pr-btn" class="btn btn-primary">Open as a PR on GitHub</button>
   </div>
 </dialog>
 
