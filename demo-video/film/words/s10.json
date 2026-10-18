@@ -1,0 +1,38 @@
+[
+  {
+    "text": "Desire",
+    "start": 0.04,
+    "end": 0.47,
+    "id": "w0"
+  },
+  {
+    "text": "Paths,",
+    "start": 0.47,
+    "end": 1.04,
+    "id": "w1"
+  },
+  {
+    "text": "Built",
+    "start": 1.1,
+    "end": 1.43,
+    "id": "w2"
+  },
+  {
+    "text": "on",
+    "start": 1.53,
+    "end": 1.6,
+    "id": "w3"
+  },
+  {
+    "text": "Falker",
+    "start": 1.6,
+    "end": 2.08,
+    "id": "w4"
+  },
+  {
+    "text": "DB.",
+    "start": 2.08,
+    "end": 2.3,
+    "id": "w5"
+  }
+]

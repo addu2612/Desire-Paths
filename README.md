@@ -13,6 +13,8 @@ On FalkorDB's own repository, it found:
 Replayed on 300 merged PRs, the agent's top two picks include a person who really reviewed **77%** of the time on FalkorDB (CODEOWNERS: 0%, because it names only a team).
 On Apache Airflow it reaches **44%**, against **26%** for CODEOWNERS.
 
+**Demo video (2 min):** [docs/desire-paths-demo.mp4](docs/desire-paths-demo.mp4)
+
 A real action it took: [a paved CODEOWNERS pull request](https://github.com/addu2612/FalkorDB/pull/1) on a fork of FalkorDB, opened from the app after one click of approval.
 
 In urban planning, a *desire path* is the dirt trail people wear across the grass when the paved path goes the wrong way.

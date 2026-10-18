@@ -1,0 +1,42 @@
+[
+ [
+  "s1",
+  "Every repository has a paved path: code owners, the org chart. And it has desire paths, the trails people actually walk."
+ ],
+ [
+  "s2",
+  "We loaded Falkor D B's own repository into one Falkor D B graph. Only fourteen percent of its files have an official owner. Seventeen of the forty newest open pull requests are misrouted. And A.I. reviewer bots now write more reviews than every human combined."
+ ],
+ [
+  "s3",
+  "This is the map. Dashed violet is what code owners says. The grooves are worn by real pull requests and reviews, and they fade when people stop walking them. Press play, and watch eighteen months wear in."
+ ],
+ [
+  "s4",
+  "The agent acts on it. It sweeps the review queue, and finds sixteen pull requests that nobody was asked to review. One has waited fifty three days."
+ ],
+ [
+  "s5",
+  "For each one, it walks the graph. From the pull request, to the code it touches, to the people who really work there, to their current review load. It picks two reviewers, says who it ruled out, and waits for one click of approval."
+ ],
+ [
+  "s6",
+  "Now ask: what breaks if Dveer goes on vacation? The agent removes him from the graph, and walks it again. Twenty seven open pull requests lose their reviewer. Twenty one have no good backup."
+ ],
+ [
+  "s7",
+  "So how should the queue be split? Code owners names no one. The graph names an expert for thirty eight of forty. And a max flow solve, run inside Falkor D B, keeps the busiest load as low as it can go. Replayed on three hundred past pull requests, its top picks include the real reviewer seventy seven percent of the time."
+ ],
+ [
+  "s8",
+  "Every answer shows the Cypher queries behind it. And every tool is also an M C P server, so any agent can use the graph."
+ ],
+ [
+  "s9",
+  "It acts for real. This is the code owners pull request it opened, paving the paths people actually walk."
+ ],
+ [
+  "s10",
+  "Desire Paths. Built on Falkor D B."
+ ]
+]

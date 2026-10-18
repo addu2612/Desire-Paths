@@ -1,0 +1,110 @@
+[
+  {
+    "text": "It",
+    "start": 0.03,
+    "end": 0.13,
+    "id": "w0"
+  },
+  {
+    "text": "acts",
+    "start": 0.18,
+    "end": 0.54,
+    "id": "w1"
+  },
+  {
+    "text": "for",
+    "start": 0.54,
+    "end": 0.81,
+    "id": "w2"
+  },
+  {
+    "text": "real.",
+    "start": 0.81,
+    "end": 1.44,
+    "id": "w3"
+  },
+  {
+    "text": "This",
+    "start": 1.47,
+    "end": 1.67,
+    "id": "w4"
+  },
+  {
+    "text": "is",
+    "start": 1.67,
+    "end": 1.75,
+    "id": "w5"
+  },
+  {
+    "text": "the",
+    "start": 1.81,
+    "end": 1.89,
+    "id": "w6"
+  },
+  {
+    "text": "code",
+    "start": 1.95,
+    "end": 2.18,
+    "id": "w7"
+  },
+  {
+    "text": "owner's",
+    "start": 2.18,
+    "end": 2.58,
+    "id": "w8"
+  },
+  {
+    "text": "pull",
+    "start": 2.58,
+    "end": 2.87,
+    "id": "w9"
+  },
+  {
+    "text": "requested",
+    "start": 2.87,
+    "end": 3.4,
+    "id": "w10"
+  },
+  {
+    "text": "opened,",
+    "start": 3.4,
+    "end": 4.08,
+    "id": "w11"
+  },
+  {
+    "text": "paving",
+    "start": 4.11,
+    "end": 4.39,
+    "id": "w12"
+  },
+  {
+    "text": "the",
+    "start": 4.45,
+    "end": 4.63,
+    "id": "w13"
+  },
+  {
+    "text": "path's",
+    "start": 4.63,
+    "end": 4.99,
+    "id": "w14"
+  },
+  {
+    "text": "people",
+    "start": 4.99,
+    "end": 5.05,
+    "id": "w15"
+  },
+  {
+    "text": "actually",
+    "start": 5.51,
+    "end": 5.81,
+    "id": "w16"
+  },
+  {
+    "text": "walk.",
+    "start": 5.87,
+    "end": 6.3,
+    "id": "w17"
+  }
+]

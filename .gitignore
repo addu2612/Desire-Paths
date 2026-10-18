@@ -3,3 +3,12 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# demo film: large generated assets and renders
+demo-video/capture/
+demo-video/film/assets/
+demo-video/film/renders/
+demo-video/film/.hyperframes/
+demo-video/film/node_modules/
+demo-video/vo/*.wav
+demo-video/film/.thumbnails/

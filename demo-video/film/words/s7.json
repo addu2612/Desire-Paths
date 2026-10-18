@@ -1,0 +1,338 @@
+[
+  {
+    "text": "So",
+    "start": 0.06,
+    "end": 0.13,
+    "id": "w0"
+  },
+  {
+    "text": "how",
+    "start": 0.13,
+    "end": 0.33,
+    "id": "w1"
+  },
+  {
+    "text": "should",
+    "start": 0.33,
+    "end": 0.74,
+    "id": "w2"
+  },
+  {
+    "text": "the",
+    "start": 0.74,
+    "end": 0.94,
+    "id": "w3"
+  },
+  {
+    "text": "QB",
+    "start": 0.94,
+    "end": 1.07,
+    "id": "w4"
+  },
+  {
+    "text": "split?",
+    "start": 1.07,
+    "end": 1.66,
+    "id": "w5"
+  },
+  {
+    "text": "Code",
+    "start": 1.73,
+    "end": 1.97,
+    "id": "w6"
+  },
+  {
+    "text": "owners",
+    "start": 1.97,
+    "end": 2.44,
+    "id": "w7"
+  },
+  {
+    "text": "names",
+    "start": 2.44,
+    "end": 2.82,
+    "id": "w8"
+  },
+  {
+    "text": "no",
+    "start": 2.82,
+    "end": 2.86,
+    "id": "w9"
+  },
+  {
+    "text": "one.",
+    "start": 3.21,
+    "end": 3.48,
+    "id": "w10"
+  },
+  {
+    "text": "The",
+    "start": 3.55,
+    "end": 3.7,
+    "id": "w11"
+  },
+  {
+    "text": "graph",
+    "start": 3.7,
+    "end": 4.07,
+    "id": "w12"
+  },
+  {
+    "text": "names",
+    "start": 4.07,
+    "end": 4.42,
+    "id": "w13"
+  },
+  {
+    "text": "an",
+    "start": 4.44,
+    "end": 4.59,
+    "id": "w14"
+  },
+  {
+    "text": "expert",
+    "start": 4.59,
+    "end": 4.68,
+    "id": "w15"
+  },
+  {
+    "text": "for",
+    "start": 5.14,
+    "end": 5.26,
+    "id": "w16"
+  },
+  {
+    "text": "38",
+    "start": 5.26,
+    "end": 5.71,
+    "id": "w17"
+  },
+  {
+    "text": "of",
+    "start": 5.71,
+    "end": 5.86,
+    "id": "w18"
+  },
+  {
+    "text": "40.",
+    "start": 5.86,
+    "end": 6.36,
+    "id": "w19"
+  },
+  {
+    "text": "And",
+    "start": 6.43,
+    "end": 6.65,
+    "id": "w20"
+  },
+  {
+    "text": "a",
+    "start": 6.65,
+    "end": 6.73,
+    "id": "w21"
+  },
+  {
+    "text": "max",
+    "start": 6.74,
+    "end": 7.01,
+    "id": "w22"
+  },
+  {
+    "text": "flow",
+    "start": 7.02,
+    "end": 7.34,
+    "id": "w23"
+  },
+  {
+    "text": "solve",
+    "start": 7.41,
+    "end": 7.56,
+    "id": "w24"
+  },
+  {
+    "text": "run",
+    "start": 8.03,
+    "end": 8.2,
+    "id": "w25"
+  },
+  {
+    "text": "inside",
+    "start": 8.2,
+    "end": 8.79,
+    "id": "w26"
+  },
+  {
+    "text": "Falcker",
+    "start": 8.79,
+    "end": 9.38,
+    "id": "w27"
+  },
+  {
+    "text": "DB",
+    "start": 9.38,
+    "end": 9.79,
+    "id": "w28"
+  },
+  {
+    "text": "keeps",
+    "start": 9.79,
+    "end": 10.12,
+    "id": "w29"
+  },
+  {
+    "text": "the",
+    "start": 10.12,
+    "end": 10.32,
+    "id": "w30"
+  },
+  {
+    "text": "busiest",
+    "start": 10.36,
+    "end": 10.91,
+    "id": "w31"
+  },
+  {
+    "text": "load",
+    "start": 10.91,
+    "end": 11.38,
+    "id": "w32"
+  },
+  {
+    "text": "as",
+    "start": 11.38,
+    "end": 11.4,
+    "id": "w33"
+  },
+  {
+    "text": "low",
+    "start": 11.46,
+    "end": 11.65,
+    "id": "w34"
+  },
+  {
+    "text": "as",
+    "start": 11.65,
+    "end": 11.81,
+    "id": "w35"
+  },
+  {
+    "text": "it",
+    "start": 11.81,
+    "end": 11.96,
+    "id": "w36"
+  },
+  {
+    "text": "can",
+    "start": 11.96,
+    "end": 12.21,
+    "id": "w37"
+  },
+  {
+    "text": "go.",
+    "start": 12.21,
+    "end": 12.65,
+    "id": "w38"
+  },
+  {
+    "text": "Replaid",
+    "start": 12.73,
+    "end": 13.18,
+    "id": "w39"
+  },
+  {
+    "text": "on",
+    "start": 13.21,
+    "end": 13.35,
+    "id": "w40"
+  },
+  {
+    "text": "300",
+    "start": 13.35,
+    "end": 13.85,
+    "id": "w41"
+  },
+  {
+    "text": "past",
+    "start": 14.32,
+    "end": 14.34,
+    "id": "w42"
+  },
+  {
+    "text": "pull",
+    "start": 14.4,
+    "end": 14.66,
+    "id": "w43"
+  },
+  {
+    "text": "requests,",
+    "start": 14.66,
+    "end": 15.3,
+    "id": "w44"
+  },
+  {
+    "text": "its",
+    "start": 15.37,
+    "end": 15.49,
+    "id": "w45"
+  },
+  {
+    "text": "top",
+    "start": 15.49,
+    "end": 15.67,
+    "id": "w46"
+  },
+  {
+    "text": "picks",
+    "start": 15.68,
+    "end": 15.98,
+    "id": "w47"
+  },
+  {
+    "text": "include",
+    "start": 15.98,
+    "end": 16.43,
+    "id": "w48"
+  },
+  {
+    "text": "the",
+    "start": 16.43,
+    "end": 16.5,
+    "id": "w49"
+  },
+  {
+    "text": "real",
+    "start": 16.5,
+    "end": 17.03,
+    "id": "w50"
+  },
+  {
+    "text": "reviewer",
+    "start": 17.03,
+    "end": 17.4,
+    "id": "w51"
+  },
+  {
+    "text": "77%",
+    "start": 17.4,
+    "end": 18.08,
+    "id": "w52"
+  },
+  {
+    "text": "of",
+    "start": 18.08,
+    "end": 18.28,
+    "id": "w53"
+  },
+  {
+    "text": "the",
+    "start": 18.28,
+    "end": 18.34,
+    "id": "w54"
+  },
+  {
+    "text": "time.",
+    "start": 18.82,
+    "end": 19.3,
+    "id": "w55"
+  }
+]

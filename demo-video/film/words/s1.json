@@ -1,0 +1,128 @@
+[
+  {
+    "text": "Every",
+    "start": 0.04,
+    "end": 0.39,
+    "id": "w0"
+  },
+  {
+    "text": "repository",
+    "start": 0.45,
+    "end": 1.3,
+    "id": "w1"
+  },
+  {
+    "text": "has",
+    "start": 1.3,
+    "end": 1.56,
+    "id": "w2"
+  },
+  {
+    "text": "a",
+    "start": 1.56,
+    "end": 1.64,
+    "id": "w3"
+  },
+  {
+    "text": "paved",
+    "start": 1.64,
+    "end": 2.03,
+    "id": "w4"
+  },
+  {
+    "text": "path,",
+    "start": 2.44,
+    "end": 2.52,
+    "id": "w5"
+  },
+  {
+    "text": "code",
+    "start": 2.59,
+    "end": 2.87,
+    "id": "w6"
+  },
+  {
+    "text": "owners,",
+    "start": 2.87,
+    "end": 3.42,
+    "id": "w7"
+  },
+  {
+    "text": "the",
+    "start": 3.42,
+    "end": 3.57,
+    "id": "w8"
+  },
+  {
+    "text": "org",
+    "start": 3.57,
+    "end": 3.67,
+    "id": "w9"
+  },
+  {
+    "text": "chart.",
+    "start": 3.73,
+    "end": 4.48,
+    "id": "w10"
+  },
+  {
+    "text": "And",
+    "start": 4.52,
+    "end": 4.7,
+    "id": "w11"
+  },
+  {
+    "text": "it",
+    "start": 4.7,
+    "end": 4.85,
+    "id": "w12"
+  },
+  {
+    "text": "has",
+    "start": 4.85,
+    "end": 5.07,
+    "id": "w13"
+  },
+  {
+    "text": "desire",
+    "start": 5.07,
+    "end": 5.52,
+    "id": "w14"
+  },
+  {
+    "text": "paths,",
+    "start": 5.52,
+    "end": 6.02,
+    "id": "w15"
+  },
+  {
+    "text": "the",
+    "start": 6.02,
+    "end": 6.14,
+    "id": "w16"
+  },
+  {
+    "text": "trails",
+    "start": 6.2,
+    "end": 6.51,
+    "id": "w17"
+  },
+  {
+    "text": "people",
+    "start": 6.51,
+    "end": 6.52,
+    "id": "w18"
+  },
+  {
+    "text": "actually",
+    "start": 7,
+    "end": 7.27,
+    "id": "w19"
+  },
+  {
+    "text": "walk.",
+    "start": 7.27,
+    "end": 7.68,
+    "id": "w20"
+  }
+]

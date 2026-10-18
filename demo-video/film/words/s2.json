@@ -1,0 +1,260 @@
+[
+  {
+    "text": "We",
+    "start": 0.04,
+    "end": 0.17,
+    "id": "w0"
+  },
+  {
+    "text": "loaded",
+    "start": 0.17,
+    "end": 0.68,
+    "id": "w1"
+  },
+  {
+    "text": "Falker",
+    "start": 0.68,
+    "end": 1.18,
+    "id": "w2"
+  },
+  {
+    "text": "DB's",
+    "start": 1.18,
+    "end": 1.51,
+    "id": "w3"
+  },
+  {
+    "text": "own",
+    "start": 1.51,
+    "end": 1.76,
+    "id": "w4"
+  },
+  {
+    "text": "repository",
+    "start": 1.76,
+    "end": 2.57,
+    "id": "w5"
+  },
+  {
+    "text": "into",
+    "start": 2.68,
+    "end": 2.99,
+    "id": "w6"
+  },
+  {
+    "text": "one",
+    "start": 3.01,
+    "end": 3.29,
+    "id": "w7"
+  },
+  {
+    "text": "Falker",
+    "start": 3.29,
+    "end": 3.85,
+    "id": "w8"
+  },
+  {
+    "text": "DB",
+    "start": 3.85,
+    "end": 4.01,
+    "id": "w9"
+  },
+  {
+    "text": "graph.",
+    "start": 4.05,
+    "end": 4.81,
+    "id": "w10"
+  },
+  {
+    "text": "Only",
+    "start": 4.86,
+    "end": 5.12,
+    "id": "w11"
+  },
+  {
+    "text": "14%",
+    "start": 5.12,
+    "end": 5.62,
+    "id": "w12"
+  },
+  {
+    "text": "of",
+    "start": 5.65,
+    "end": 5.76,
+    "id": "w13"
+  },
+  {
+    "text": "its",
+    "start": 5.8,
+    "end": 6.03,
+    "id": "w14"
+  },
+  {
+    "text": "files",
+    "start": 6.03,
+    "end": 6.41,
+    "id": "w15"
+  },
+  {
+    "text": "have",
+    "start": 6.41,
+    "end": 6.63,
+    "id": "w16"
+  },
+  {
+    "text": "an",
+    "start": 6.73,
+    "end": 6.86,
+    "id": "w17"
+  },
+  {
+    "text": "official",
+    "start": 6.86,
+    "end": 7.39,
+    "id": "w18"
+  },
+  {
+    "text": "owner.",
+    "start": 7.5,
+    "end": 7.99,
+    "id": "w19"
+  },
+  {
+    "text": "17",
+    "start": 8.16,
+    "end": 8.57,
+    "id": "w20"
+  },
+  {
+    "text": "of",
+    "start": 8.57,
+    "end": 8.73,
+    "id": "w21"
+  },
+  {
+    "text": "the",
+    "start": 8.73,
+    "end": 8.96,
+    "id": "w22"
+  },
+  {
+    "text": "40",
+    "start": 8.96,
+    "end": 9.42,
+    "id": "w23"
+  },
+  {
+    "text": "newest",
+    "start": 9.42,
+    "end": 9.88,
+    "id": "w24"
+  },
+  {
+    "text": "open",
+    "start": 9.88,
+    "end": 10.18,
+    "id": "w25"
+  },
+  {
+    "text": "pull",
+    "start": 10.18,
+    "end": 10.48,
+    "id": "w26"
+  },
+  {
+    "text": "requests",
+    "start": 10.48,
+    "end": 11.09,
+    "id": "w27"
+  },
+  {
+    "text": "are",
+    "start": 11.09,
+    "end": 11.29,
+    "id": "w28"
+  },
+  {
+    "text": "misrouted.",
+    "start": 11.43,
+    "end": 12.04,
+    "id": "w29"
+  },
+  {
+    "text": "And",
+    "start": 12.08,
+    "end": 12.49,
+    "id": "w30"
+  },
+  {
+    "text": "A,",
+    "start": 12.65,
+    "end": 12.96,
+    "id": "w31"
+  },
+  {
+    "text": "I,",
+    "start": 12.96,
+    "end": 13.67,
+    "id": "w32"
+  },
+  {
+    "text": "reviewer",
+    "start": 13.67,
+    "end": 14.13,
+    "id": "w33"
+  },
+  {
+    "text": "bots",
+    "start": 14.13,
+    "end": 14.4,
+    "id": "w34"
+  },
+  {
+    "text": "now",
+    "start": 14.4,
+    "end": 14.58,
+    "id": "w35"
+  },
+  {
+    "text": "write",
+    "start": 14.58,
+    "end": 14.88,
+    "id": "w36"
+  },
+  {
+    "text": "more",
+    "start": 14.88,
+    "end": 15.11,
+    "id": "w37"
+  },
+  {
+    "text": "reviews",
+    "start": 15.11,
+    "end": 15.47,
+    "id": "w38"
+  },
+  {
+    "text": "than",
+    "start": 15.56,
+    "end": 15.76,
+    "id": "w39"
+  },
+  {
+    "text": "every",
+    "start": 15.76,
+    "end": 15.97,
+    "id": "w40"
+  },
+  {
+    "text": "human",
+    "start": 16.13,
+    "end": 16.36,
+    "id": "w41"
+  },
+  {
+    "text": "combined.",
+    "start": 16.36,
+    "end": 17.04,
+    "id": "w42"
+  }
+]

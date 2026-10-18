@@ -1,0 +1,111 @@
+:root {
+  --clay: #E0E5EC;
+  --fg: #3D4852;
+  --muted: #5B6573;
+  --accent: #6C63FF;
+  --teal: #2C9A95;
+  --risk: #C2410C;
+  --groove: #C9D1DC;
+  --light: rgba(255, 255, 255, 0.55);
+  --dark: rgb(163 177 198 / 0.62);
+  --raised: 18px 18px 36px var(--dark), -18px -18px 36px var(--light);
+  --raised-sm: 8px 8px 16px var(--dark), -8px -8px 16px var(--light);
+  --inset: inset 8px 8px 16px var(--dark), inset -8px -8px 16px var(--light);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--clay); }
+#root {
+  position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--clay);
+  color: var(--fg); font-family: "DM Sans", system-ui, sans-serif;
+}
+.scene { position: absolute; inset: 0; }
+.scene-in { position: absolute; inset: 0; }
+.full { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+
+/* paths: the blueprint is a dashed violet line, the desire path is carved into the clay */
+.paved { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 16 12; opacity: .75; }
+.paved.faint { opacity: .3; }
+.g-dark, .g-light, .g-floor { fill: none; stroke-linecap: round; }
+.g-dark { stroke: rgb(163 177 198 / 0.9); stroke-width: 30; }
+.g-light { stroke: #fff; stroke-width: 30; }
+.g-floor { stroke: var(--groove); stroke-width: 28; }
+.violet-floor { stroke: #A9A4FF; }
+.walker { fill: var(--teal); }
+
+.o-line { position: absolute; left: 160px; font: 800 76px/1.1 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.03em; }
+.o-line b { font-weight: 800; }
+.violet { color: var(--accent); }
+.tag { position: absolute; font: 600 30px "Plus Jakarta Sans", sans-serif; color: var(--fg); }
+.tag.plan { color: var(--accent); }
+.lockup { position: absolute; display: flex; align-items: center; gap: 28px; font: 800 96px "Plus Jakarta Sans", sans-serif; letter-spacing: -0.035em; }
+.lockup.center { left: 0; right: 0; top: 330px; justify-content: center; font-size: 132px; }
+.mark { width: 104px; height: 104px; border-radius: 50%; box-shadow: var(--raised-sm); display: grid; place-items: center; flex: none; }
+.mark span { width: 64px; height: 64px; border-radius: 50%; box-shadow: var(--inset); position: relative; display: block; }
+.mark span::after { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: var(--accent); }
+
+/* findings */
+.eyebrow { position: absolute; left: 0; right: 0; top: 150px; text-align: center; font: 600 34px "Plus Jakarta Sans", sans-serif; color: var(--muted); }
+.tiles { position: absolute; left: 150px; right: 150px; top: 300px; display: flex; gap: 70px; }
+.tile { flex: 1; height: 520px; border-radius: 48px; background: var(--clay); box-shadow: var(--raised); padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; }
+.tile-text { font: 700 38px/1.2 "Plus Jakarta Sans", sans-serif; margin-top: 30px; letter-spacing: -0.015em; }
+.tile-sub { font: 500 28px "DM Sans", sans-serif; color: var(--muted); margin-top: 14px; }
+.big { font: 800 150px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.045em; }
+.big .of { color: var(--muted); font-size: 90px; }
+.risk { color: var(--risk); }
+.dial { width: 230px; height: 230px; border-radius: 50%; box-shadow: var(--inset); position: relative; display: grid; place-items: center; }
+.dial svg { position: absolute; inset: 15px; width: 200px; height: 200px; transform: rotate(-90deg); }
+.dial-track { fill: none; stroke: transparent; stroke-width: 12; }
+.dial-arc { fill: none; stroke: var(--accent); stroke-width: 12; stroke-linecap: round; stroke-dasharray: 502.65 502.65; stroke-dashoffset: 502.65; }
+.pct { white-space: nowrap; }
+.dial-core { width: 140px; height: 140px; border-radius: 50%; box-shadow: var(--raised-sm); display: grid; place-items: center; font: 800 50px "Plus Jakarta Sans", sans-serif; }
+
+/* the app, in a clay window */
+.device { position: absolute; border-radius: 32px; background: var(--clay); box-shadow: var(--raised); padding: 14px; }
+.viewport { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 22px; box-shadow: var(--inset); }
+.cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+.ring { position: absolute; border: 4px solid var(--accent); border-radius: 18px; opacity: 0; box-shadow: 0 0 0 6px rgb(108 99 255 / 0.15); }
+.tap { position: absolute; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 4px solid var(--accent); opacity: 0; }
+
+.chip { position: absolute; display: flex; align-items: center; gap: 16px; padding: 22px 34px; border-radius: 999px; background: var(--clay);
+  box-shadow: var(--raised-sm); font: 700 34px "Plus Jakarta Sans", sans-serif; letter-spacing: -0.01em; opacity: 0; white-space: nowrap; z-index: 20; }
+.chip.accent { background: var(--accent); color: #fff; box-shadow: 8px 8px 18px rgb(108 99 255 / 0.35), -8px -8px 16px var(--light); }
+.chip b { font-weight: 800; }
+.sw-plan { display: block; width: 56px; height: 0; border-top: 5px dashed var(--accent); }
+.sw-groove { display: block; width: 56px; height: 16px; border-radius: 8px; background: var(--groove); box-shadow: inset 3px 3px 4px rgb(163 177 198 / 0.95), inset -2px -2px 2px #fff; }
+
+/* route: the hops of the decision */
+.hops { position: absolute; left: 90px; top: 170px; width: 540px; display: flex; flex-direction: column; gap: 0; }
+.hop { padding: 26px 30px; border-radius: 26px; background: var(--clay); box-shadow: var(--raised-sm); font: 700 30px/1.25 "Plus Jakarta Sans", sans-serif; opacity: 0; }
+.hop .k { display: block; font: 700 18px "Plus Jakarta Sans", sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.arrow { width: 6px; height: 38px; margin: 6px 0 6px 50px; border-radius: 3px; background: var(--teal); transform-origin: 50% 0; }
+
+.stat-pop { position: absolute; display: flex; align-items: center; gap: 22px; padding: 22px 40px; border-radius: 40px; background: var(--clay); box-shadow: var(--raised); opacity: 0; }
+.stat-pop b { font: 800 110px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.04em; }
+.stat-pop span { font: 700 36px/1.15 "Plus Jakarta Sans", sans-serif; width: 360px; }
+
+/* backtest bars */
+.backtest { position: absolute; left: 160px; right: 160px; top: 170px; height: 740px; border-radius: 48px; background: var(--clay); box-shadow: var(--raised); padding: 70px 90px; opacity: 0; }
+.bt-title { font: 800 52px/1.15 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.025em; margin-bottom: 60px; }
+.bt-row { display: grid; grid-template-columns: 430px 1fr 190px; gap: 36px; align-items: center; margin-bottom: 44px; }
+.bt-label { font: 700 34px "Plus Jakarta Sans", sans-serif; color: var(--muted); }
+.bt-row.win .bt-label { color: var(--fg); }
+.bt-bar { height: 46px; border-radius: 23px; box-shadow: var(--inset); overflow: hidden; }
+.bt-bar span { display: block; height: 100%; width: 100%; border-radius: 23px; background: #8E98A6; transform-origin: 0 50%; }
+.bt-row.win .bt-bar span { background: var(--accent); }
+.bt-val { font: 800 64px "Plus Jakarta Sans", sans-serif; letter-spacing: -0.03em; text-align: right; }
+.bt-row.win .bt-val { color: var(--accent); }
+.bt-foot { font: 500 28px "DM Sans", sans-serif; color: var(--muted); margin-top: 14px; }
+
+/* terminal */
+.term { position: absolute; left: 1010px; top: 150px; width: 820px; height: 760px; border-radius: 32px; background: var(--clay); box-shadow: var(--raised); padding: 14px; opacity: 0; }
+.term-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 18px; font: 600 24px "Plus Jakarta Sans", sans-serif; color: var(--muted); }
+.term-head i { width: 16px; height: 16px; border-radius: 50%; box-shadow: var(--inset); display: block; }
+.term-head span { margin-left: 12px; }
+.term pre { height: 660px; border-radius: 22px; box-shadow: var(--inset); padding: 40px 36px; font: 400 24px/1.65 "JetBrains Mono", monospace; color: var(--fg); white-space: pre; overflow: hidden; }
+.term pre b { color: var(--accent); font-weight: 500; }
+.term .prompt { color: var(--teal); }
+.term .dim { color: var(--muted); }
+
+.e-sub { position: absolute; left: 0; right: 0; top: 520px; text-align: center; font: 600 42px "Plus Jakarta Sans", sans-serif; color: var(--muted); letter-spacing: -0.01em; }
+.e-meta { position: absolute; left: 0; right: 0; top: 620px; text-align: center; font: 500 32px "DM Sans", sans-serif; color: var(--fg); }

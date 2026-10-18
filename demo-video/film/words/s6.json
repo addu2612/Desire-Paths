@@ -1,0 +1,194 @@
+[
+  {
+    "text": "Now",
+    "start": 0.05,
+    "end": 0.23,
+    "id": "w0"
+  },
+  {
+    "text": "ask,",
+    "start": 0.23,
+    "end": 0.59,
+    "id": "w1"
+  },
+  {
+    "text": "what",
+    "start": 0.64,
+    "end": 0.65,
+    "id": "w2"
+  },
+  {
+    "text": "breaks",
+    "start": 0.94,
+    "end": 1.38,
+    "id": "w3"
+  },
+  {
+    "text": "if",
+    "start": 1.38,
+    "end": 1.46,
+    "id": "w4"
+  },
+  {
+    "text": "Devier",
+    "start": 1.6,
+    "end": 1.95,
+    "id": "w5"
+  },
+  {
+    "text": "goes",
+    "start": 2.01,
+    "end": 2.31,
+    "id": "w6"
+  },
+  {
+    "text": "on",
+    "start": 2.31,
+    "end": 2.46,
+    "id": "w7"
+  },
+  {
+    "text": "vacation?",
+    "start": 2.46,
+    "end": 3.42,
+    "id": "w8"
+  },
+  {
+    "text": "The",
+    "start": 3.47,
+    "end": 3.61,
+    "id": "w9"
+  },
+  {
+    "text": "agent",
+    "start": 3.61,
+    "end": 3.91,
+    "id": "w10"
+  },
+  {
+    "text": "removes",
+    "start": 3.91,
+    "end": 4.07,
+    "id": "w11"
+  },
+  {
+    "text": "him",
+    "start": 4.36,
+    "end": 4.55,
+    "id": "w12"
+  },
+  {
+    "text": "from",
+    "start": 4.55,
+    "end": 4.79,
+    "id": "w13"
+  },
+  {
+    "text": "the",
+    "start": 4.79,
+    "end": 4.88,
+    "id": "w14"
+  },
+  {
+    "text": "graph",
+    "start": 5.02,
+    "end": 5.32,
+    "id": "w15"
+  },
+  {
+    "text": "and",
+    "start": 5.32,
+    "end": 5.53,
+    "id": "w16"
+  },
+  {
+    "text": "walks",
+    "start": 5.53,
+    "end": 5.88,
+    "id": "w17"
+  },
+  {
+    "text": "it",
+    "start": 5.88,
+    "end": 5.97,
+    "id": "w18"
+  },
+  {
+    "text": "again.",
+    "start": 6.02,
+    "end": 6.42,
+    "id": "w19"
+  },
+  {
+    "text": "27",
+    "start": 6.65,
+    "end": 7.08,
+    "id": "w20"
+  },
+  {
+    "text": "open",
+    "start": 7.08,
+    "end": 7.25,
+    "id": "w21"
+  },
+  {
+    "text": "pull",
+    "start": 7.54,
+    "end": 7.72,
+    "id": "w22"
+  },
+  {
+    "text": "requests",
+    "start": 7.72,
+    "end": 8.35,
+    "id": "w23"
+  },
+  {
+    "text": "lose",
+    "start": 8.35,
+    "end": 8.67,
+    "id": "w24"
+  },
+  {
+    "text": "their",
+    "start": 8.67,
+    "end": 9.07,
+    "id": "w25"
+  },
+  {
+    "text": "reviewer.",
+    "start": 9.07,
+    "end": 9.96,
+    "id": "w26"
+  },
+  {
+    "text": "21",
+    "start": 10.01,
+    "end": 10.41,
+    "id": "w27"
+  },
+  {
+    "text": "have",
+    "start": 10.41,
+    "end": 10.61,
+    "id": "w28"
+  },
+  {
+    "text": "no",
+    "start": 10.61,
+    "end": 10.9,
+    "id": "w29"
+  },
+  {
+    "text": "good",
+    "start": 10.9,
+    "end": 11.16,
+    "id": "w30"
+  },
+  {
+    "text": "backup.",
+    "start": 11.16,
+    "end": 11.86,
+    "id": "w31"
+  }
+]

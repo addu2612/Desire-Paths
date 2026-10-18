@@ -1,0 +1,146 @@
+[
+  {
+    "text": "every",
+    "start": 0.03,
+    "end": 0.36,
+    "id": "w0"
+  },
+  {
+    "text": "answer",
+    "start": 0.36,
+    "end": 0.78,
+    "id": "w1"
+  },
+  {
+    "text": "shows",
+    "start": 0.79,
+    "end": 1.12,
+    "id": "w2"
+  },
+  {
+    "text": "the",
+    "start": 1.2,
+    "end": 1.34,
+    "id": "w3"
+  },
+  {
+    "text": "cipher",
+    "start": 1.41,
+    "end": 1.79,
+    "id": "w4"
+  },
+  {
+    "text": "query",
+    "start": 1.79,
+    "end": 2.15,
+    "id": "w5"
+  },
+  {
+    "text": "is",
+    "start": 2.15,
+    "end": 2.28,
+    "id": "w6"
+  },
+  {
+    "text": "behind",
+    "start": 2.28,
+    "end": 2.39,
+    "id": "w7"
+  },
+  {
+    "text": "it.",
+    "start": 2.39,
+    "end": 2.95,
+    "id": "w8"
+  },
+  {
+    "text": "And",
+    "start": 2.95,
+    "end": 3.2,
+    "id": "w9"
+  },
+  {
+    "text": "every",
+    "start": 3.22,
+    "end": 3.72,
+    "id": "w10"
+  },
+  {
+    "text": "tool",
+    "start": 3.72,
+    "end": 4.04,
+    "id": "w11"
+  },
+  {
+    "text": "is",
+    "start": 4.12,
+    "end": 4.26,
+    "id": "w12"
+  },
+  {
+    "text": "also",
+    "start": 4.33,
+    "end": 4.72,
+    "id": "w13"
+  },
+  {
+    "text": "an",
+    "start": 4.72,
+    "end": 4.92,
+    "id": "w14"
+  },
+  {
+    "text": "MCP",
+    "start": 4.92,
+    "end": 5.2,
+    "id": "w15"
+  },
+  {
+    "text": "server,",
+    "start": 5.21,
+    "end": 5.88,
+    "id": "w16"
+  },
+  {
+    "text": "so",
+    "start": 5.9,
+    "end": 5.99,
+    "id": "w17"
+  },
+  {
+    "text": "any",
+    "start": 6.02,
+    "end": 6.21,
+    "id": "w18"
+  },
+  {
+    "text": "agent",
+    "start": 6.21,
+    "end": 6.55,
+    "id": "w19"
+  },
+  {
+    "text": "can",
+    "start": 6.55,
+    "end": 6.75,
+    "id": "w20"
+  },
+  {
+    "text": "use",
+    "start": 6.75,
+    "end": 6.95,
+    "id": "w21"
+  },
+  {
+    "text": "the",
+    "start": 6.95,
+    "end": 7.15,
+    "id": "w22"
+  },
+  {
+    "text": "graph.",
+    "start": 7.15,
+    "end": 7.74,
+    "id": "w23"
+  }
+]
